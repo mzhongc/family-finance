@@ -1,0 +1,2835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭财务管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --bg: #f4f3ef;
+    --sidebar: #1a1a2e;
+    --sidebar-accent: #16213e;
+    --primary: #e8622a;
+    --primary-light: #f0845a;
+    --text: #1a1a1a;
+    --text-muted: #888;
+    --border: #e0ddd8;
+    --card: #ffffff;
+    --card-hover: #faf9f6;
+    --green: #2d9e6b;
+    --blue: #2d6fe8;
+    --yellow: #f0a500;
+    --red: #e84040;
+    --sidebar-w: 220px;
+    --font: 'Noto Sans SC', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--sidebar);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .sidebar-logo h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+  }
+
+  .sidebar-logo p {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  .sidebar-year {
+    padding: 14px 20px 10px;
+  }
+
+  .sidebar-year label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .sidebar-year select {
+    display: block;
+    margin-top: 6px;
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 10px 12px;
+    overflow-y: auto;
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 8px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: rgba(255,255,255,0.6);
+    transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .nav-item.active { background: var(--primary); color: #fff; }
+  .nav-item .icon { font-size: 16px; flex-shrink: 0; }
+
+  .sidebar-bottom {
+    padding: 14px 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .sync-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    padding: 8px 12px;
+  }
+
+  .sync-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #888;
+    flex-shrink: 0;
+  }
+  .sync-dot.local { background: var(--yellow); }
+  .sync-dot.synced { background: var(--green); }
+
+  /* ── Main ── */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .topbar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .topbar-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .topbar-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+    border: none;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-light); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-danger { background: #fff0f0; color: var(--red); border: 1px solid #ffd0d0; }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+  }
+
+  /* ── Cards ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .stat-value.red { color: var(--red); }
+  .stat-value.green { color: var(--green); }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ── Charts ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .chart-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .chart-wrap {
+    position: relative;
+  }
+
+  /* ── Table ── */
+  .table-card {
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .table-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-header h3 { font-size: 13px; font-weight: 600; }
+
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .filter-select, .filter-input {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 16px;
+    background: #faf9f6;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #f0ede8;
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--card-hover); }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .tag-house { background: #e8f4ff; color: #1a6fc4; }
+  .tag-bill { background: #f0f8f0; color: #1e7e4a; }
+  .tag-ella { background: #fff4e8; color: #c45c1a; }
+  .tag-credit { background: #f8f0ff; color: #7a1ac4; }
+  .tag-cny { background: #fff8e8; color: #b8860b; }
+
+  .amount-cad { font-family: var(--mono); font-weight: 500; }
+  .amount-cny { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+  /* ── Form / Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 28px;
+    width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+    transform: translateY(10px);
+    transition: transform 0.2s;
+  }
+
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #fff;
+  }
+
+  .form-group textarea { resize: vertical; min-height: 70px; }
+
+  .form-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  #cny-fields {
+    background: #fffbf0;
+    border: 1px solid #ffe0a0;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    display: none;
+  }
+
+  #cny-fields.show { display: block; }
+
+  .cny-calc {
+    font-size: 12px;
+    color: var(--yellow);
+    font-family: var(--mono);
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Import page ── */
+  .import-zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 48px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--card);
+  }
+
+  .import-zone:hover { border-color: var(--primary); background: #fff8f5; }
+  .import-zone.drag { border-color: var(--primary); background: #fff8f5; }
+
+  .import-icon { font-size: 40px; margin-bottom: 12px; }
+  .import-zone h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .import-zone p { font-size: 13px; color: var(--text-muted); }
+
+  .import-preview {
+    margin-top: 20px;
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty h3 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .empty p { font-size: 13px; }
+
+  /* ── Month summary in detail view ── */
+  .month-group-header {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: #f8f7f3;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a1a2e;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-size: 13px;
+    z-index: 200;
+    transition: transform 0.3s;
+    pointer-events: none;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Ella view ── */
+  .ella-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .ella-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 18px;
+    border: 1px solid var(--border);
+  }
+
+  .ella-card-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .ella-card-amount { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--primary); }
+  .ella-card-count { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Delete btn */
+  .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .btn-icon:hover { background: #fff0f0; color: var(--red); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d0cdc8; border-radius: 3px; }
+
+  /* ── Google Drive banner ── */
+  .drive-banner {
+    background: linear-gradient(135deg, #1a6fc4 0%, #1a3a8f 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+
+  .drive-banner strong { font-weight: 600; }
+  .drive-banner p { opacity: 0.8; font-size: 12px; margin-top: 2px; }
+
+
+  /* ── Login Screen ── */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: opacity 0.4s;
+  }
+
+  #login-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .login-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 44px 40px;
+    width: 420px;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.4);
+  }
+
+  .login-logo {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .login-card h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .login-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+
+  .google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text);
+    font-family: var(--font);
+    width: 100%;
+  }
+
+  .google-btn:hover {
+    background: #f8f9ff;
+    border-color: #4285F4;
+    box-shadow: 0 2px 12px rgba(66,133,244,0.15);
+  }
+
+  .login-error {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fff0f0;
+    border: 1px solid #ffd0d0;
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--red);
+    text-align: left;
+  }
+
+  .login-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 20px;
+    line-height: 1.6;
+  }
+
+  .login-config-hint {
+    margin-top: 12px;
+    padding: 12px;
+    background: #fff8e8;
+    border: 1px solid #ffe0a0;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #8a6200;
+    text-align: left;
+  }
+
+  .login-setup-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .login-setup-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .login-client-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text);
+    background: var(--bg);
+  }
+  .login-client-input:focus {
+    outline: none;
+    border-color: #4285F4;
+  }
+
+  .login-setup-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  /* Sync dot states */
+  .sync-dot.synced { background: var(--green) !important; }
+  .sync-dot.syncing { background: var(--yellow) !important; animation: pulse 1s infinite; }
+  .sync-dot.error { background: var(--red) !important; }
+  .sync-dot.local { background: var(--yellow) !important; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── Settings Page ── */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .settings-sidebar-nav {
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .settings-nav-item {
+    padding: 13px 18px;
+    font-size: 13.5px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.1s;
+    color: var(--text);
+  }
+  .settings-nav-item:last-child { border-bottom: none; }
+  .settings-nav-item:hover { background: var(--bg); }
+  .settings-nav-item.active { background: #fff5f2; color: var(--primary); font-weight: 600; }
+  .settings-nav-item .s-icon { font-size: 16px; }
+
+  .settings-panel {
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 24px;
+  }
+
+  .settings-panel h2 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .settings-panel .settings-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .category-block {
+    margin-bottom: 24px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .category-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #faf9f6;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .category-block-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cat-color-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cat-name-input {
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font);
+    width: 140px;
+  }
+  .cat-name-input:focus { outline: none; border-bottom: 1.5px solid var(--primary); }
+
+  .cat-key-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+
+  .subcategory-list {
+    padding: 10px 12px;
+  }
+
+  .subcategory-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 4px;
+    border-radius: 7px;
+    transition: background 0.1s;
+  }
+  .subcategory-item:hover { background: var(--bg); }
+
+  .subcat-handle {
+    color: #ccc;
+    cursor: grab;
+    font-size: 12px;
+    padding: 0 2px;
+    user-select: none;
+  }
+
+  .subcat-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    padding: 3px 4px;
+    border-radius: 5px;
+  }
+  .subcat-input:focus { outline: none; background: #f0ede8; }
+
+  .subcat-del {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 14px;
+    padding: 2px 5px;
+    border-radius: 5px;
+    transition: all 0.1s;
+    line-height: 1;
+  }
+  .subcat-del:hover { color: var(--red); background: #fff0f0; }
+
+  .add-subcat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 12px;
+    border-top: 1px dashed var(--border);
+    margin-top: 4px;
+  }
+
+  .add-subcat-input {
+    flex: 1;
+    border: 1.5px dashed var(--border);
+    background: var(--bg);
+    font-size: 12px;
+    font-family: var(--font);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 8px;
+  }
+  .add-subcat-input:focus { outline: none; border-color: var(--primary); }
+
+  .payment-list { padding: 12px; }
+
+  .payment-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .payment-item input[type="text"] {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 9px;
+  }
+  .payment-item input:focus { outline: none; border-color: var(--primary); background: #fff; }
+
+  .payment-item .key-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 70px;
+    color: var(--text-muted);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .settings-warning {
+    background: #fff8e8;
+    border: 1px solid #ffe0a0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #8a6200;
+    margin-bottom: 20px;
+  }
+
+  .color-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .color-picker-wrap input[type="color"] {
+    width: 28px; height: 28px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+  }
+
+  .add-category-btn {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    margin-bottom: 24px;
+  }
+  .add-category-btn:hover { border-color: var(--primary); color: var(--primary); background: #fff8f5; }
+
+  .settings-save-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 14px 0 0;
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid { grid-template-columns: 1fr; }
+    .settings-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h1>家庭财务<br>管理系统</h1>
+    <p>Family Finance</p>
+  </div>
+  <div class="sidebar-year">
+    <label>年份</label>
+    <select id="year-select"></select>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">概览</div>
+    <div class="nav-item active" data-page="dashboard">
+      <span class="icon">📊</span> 仪表盘
+    </div>
+    <div class="nav-section-label">支出</div>
+    <div class="nav-item" data-page="expenses">
+      <span class="icon">📋</span> 全部明细
+    </div>
+    <div id="category-nav-items">
+      <!-- dynamically populated from settings -->
+    </div>
+    <div class="nav-section-label">工具</div>
+    <div class="nav-item" data-page="import">
+      <span class="icon">📥</span> 导入数据
+    </div>
+    <div class="nav-item" data-page="settings">
+      <span class="icon">⚙️</span> 系统设置
+    </div>
+    <div class="nav-section-label" style="margin-top:auto">即将推出</div>
+    <div class="nav-item" style="opacity:0.4; cursor:default">
+      <span class="icon">💰</span> 收入 & 投资
+    </div>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-text">未连接</span>
+    </div>
+    <div id="auth-btn-wrap" style="margin-top:8px"></div>
+  </div>
+</nav>
+
+<!-- Login Screen Overlay -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🏡</div>
+    <h1>家庭财务管理</h1>
+    <p class="login-sub">Family Finance · 登录以同步数据</p>
+    <div id="google-signin-btn" class="google-btn" onclick="gdriveSignIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.76-2.7.76-2.08 0-3.84-1.4-4.47-3.29H1.84v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.51 10.52A4.8 4.8 0 0 1 4.26 9c0-.53.09-1.04.25-1.52V5.41H1.84A8 8 0 0 0 .98 9c0 1.29.31 2.51.86 3.59l2.67-2.07z"/><path fill="#EA4335" d="M8.98 3.58c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 8.98 1a8 8 0 0 0-7.14 4.41l2.67 2.07c.63-1.89 2.39-3.3 4.47-3.3z"/></svg>
+      使用 Google 账号登录
+    </div>
+    <div id="login-error" class="login-error" style="display:none"></div>
+    <p class="login-note">数据将安全存储在你的 Google Drive 中<br>仅授权账号可访问</p>
+    <div class="login-config-hint" id="login-config-hint" style="display:none">
+      <strong>⚙️ 需要配置 Client ID</strong><br>
+      请先完成下方的 Google OAuth 配置
+    </div>
+    <div class="login-setup-section" id="login-setup-section">
+      <div class="login-setup-title">初次使用：填入你的 OAuth Client ID</div>
+      <input type="text" id="login-client-id-input" placeholder="xxx.apps.googleusercontent.com" class="login-client-input">
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveClientIdFromLogin()">保存并登录</button>
+      <div class="login-setup-hint">
+        <a href="https://console.cloud.google.com/" target="_blank" style="color:#4285F4">如何获取 Client ID →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">仪表盘</div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" onclick="openAddModal()">＋ 录入支出</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-title-text">录入支出</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-group">
+        <label>大类</label>
+        <select id="f-category" onchange="onCategoryChange()">
+          <option value="house">🏠 房屋相关</option>
+          <option value="bill">⚡ 日常账单</option>
+          <option value="ella">🎓 Ella 课外班</option>
+          <option value="credit">💳 信用卡账单</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>子类 / 科目</label>
+        <select id="f-subcategory"></select>
+      </div>
+      <div class="form-group">
+        <label>支付方式</label>
+        <select id="f-payment" onchange="onPaymentChange()">
+          <option value="credit">信用卡</option>
+          <option value="bank">银行转账</option>
+          <option value="cash">现金</option>
+          <option value="wechat">微信支付 (CNY)</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row three">
+      <div class="form-group">
+        <label>金额</label>
+        <input type="number" id="f-amount" placeholder="0.00" step="0.01" min="0" oninput="updateCnyCalc()">
+      </div>
+      <div class="form-group">
+        <label>货币</label>
+        <select id="f-currency" onchange="onCurrencyChange()">
+          <option value="CAD">CAD 加元</option>
+          <option value="CNY">CNY 人民币</option>
+        </select>
+      </div>
+      <div class="form-group" id="credit-deduct-wrap" style="display:none">
+        <label>已含信用卡</label>
+        <select id="f-in-credit">
+          <option value="no">否</option>
+          <option value="yes">是（会从账单扣除）</option>
+        </select>
+      </div>
+    </div>
+    <!-- CNY fields -->
+    <div id="cny-fields">
+      <div class="form-row">
+        <div class="form-group">
+          <label>人民币金额</label>
+          <input type="number" id="f-cny-amount" placeholder="0.00" step="0.01" oninput="updateCnyCalc()">
+        </div>
+        <div class="form-group">
+          <label>当日汇率 (1 CNY = ? CAD)</label>
+          <input type="number" id="f-rate" placeholder="0.19" step="0.0001" value="0.19" oninput="updateCnyCalc()">
+        </div>
+      </div>
+      <div class="cny-calc" id="cny-calc">≈ CAD 0.00</div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="f-note" placeholder="可选：如有多笔请分开录入，或在此注明"></textarea>
+      </div>
+    </div>
+    <!-- Credit card deduction section -->
+    <div id="credit-deduct-section" style="display:none">
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+        从信用卡账单中扣除（已单独记账的项目）
+      </div>
+      <div id="deduct-list" style="font-size:13px;color:var(--text-muted);padding:10px;background:var(--bg);border-radius:10px;margin-bottom:8px">
+        加载中...
+      </div>
+      <div style="font-size:12px;color:var(--text-muted)" id="deduct-total"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  SETTINGS — DEFAULT CONFIG
+// ═══════════════════════════════════════════════
+
+const DEFAULT_SETTINGS = {
+  categories: [
+    {
+      key: 'house',
+      label: '房屋相关',
+      icon: '🏠',
+      color: '#2d6fe8',
+      subcategories: ['房贷', '地税', '房屋保险', '物业费', '维修', '其他']
+    },
+    {
+      key: 'bill',
+      label: '日常账单',
+      icon: '⚡',
+      color: '#2d9e6b',
+      subcategories: ['电费 Hydro', '煤气费 Gas', '网费 Internet', '垃圾费/水费 Utilities', '电话费', '其他']
+    },
+    {
+      key: 'ella',
+      label: 'Ella 课外班',
+      icon: '🎓',
+      color: '#e8622a',
+      subcategories: ['钢琴', '唱歌', '中文', '骑马', '机器人', '拳击', 'Amy数学', '人文社科', '滑雪', '写作', '其他']
+    },
+    {
+      key: 'credit',
+      label: '信用卡/保险',
+      icon: '💳',
+      color: '#9b59b6',
+      subcategories: ['信用卡账单', '罗丹保险', 'RESP', '其他']
+    }
+  ],
+  paymentMethods: [
+    { key: 'credit', label: '信用卡' },
+    { key: 'bank',   label: '银行转账' },
+    { key: 'cash',   label: '现金' },
+    { key: 'wechat', label: '微信支付 (CNY)' },
+    { key: 'other',  label: '其他' }
+  ]
+};
+
+function loadSettings() {
+  const raw = localStorage.getItem('ff_settings_v1');
+  if (raw) {
+    try { return JSON.parse(raw); } catch(e) {}
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); // deep clone
+}
+
+function saveSettings(s) {
+  localStorage.setItem('ff_settings_v1', JSON.stringify(s));
+  localStorage.setItem('ff_settings_time', String(Date.now()));
+  scheduleSync();
+}
+
+// Convenience getters
+function getCategories() { return loadSettings().categories; }
+function getCategoryByKey(key) { return getCategories().find(c => c.key === key); }
+function getPaymentMethods() { return loadSettings().paymentMethods; }
+
+// Legacy compat helpers used in render functions
+function getCategoryLabel(key) {
+  const c = getCategoryByKey(key);
+  return c ? c.label : key;
+}
+function getCategoryColor(key) {
+  const c = getCategoryByKey(key);
+  return c ? c.color : '#888';
+}
+function getSubcategories(key) {
+  const c = getCategoryByKey(key);
+  return c ? c.subcategories : [];
+}
+function paymentLabel(key) {
+  const pm = getPaymentMethods().find(p => p.key === key);
+  return pm ? pm.label : (key || '-');
+}
+
+// ═══════════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════════
+
+function loadData() {
+  const raw = localStorage.getItem('ff_records_v1');
+  return raw ? JSON.parse(raw) : [];
+}
+
+function saveData(records) {
+  localStorage.setItem('ff_records_v1', JSON.stringify(records));
+  scheduleSync();
+}
+
+function getRecords() { return loadData(); }
+
+function addRecord(rec) {
+  const records = loadData();
+  rec.id = Date.now() + Math.random();
+  records.push(rec);
+  saveData(records);
+  return rec;
+}
+
+function deleteRecord(id) {
+  const records = loadData().filter(r => r.id !== id);
+  saveData(records);
+}
+
+function updateRecord(id, updated) {
+  const records = loadData().map(r => r.id === id ? {...r, ...updated} : r);
+  saveData(records);
+}
+
+// Amount always in CAD equivalent
+function cadAmount(rec) {
+  if (rec.currency === 'CNY') {
+    return (rec.cnyAmount || rec.amount) * (rec.rate || 0.19);
+  }
+  return rec.amount;
+}
+
+function filterByYear(records, year) {
+  return records.filter(r => r.date && r.date.startsWith(String(year)));
+}
+
+function filterByCategory(records, cat) {
+  return records.filter(r => r.category === cat);
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let currentPage = 'dashboard';
+let currentYear = new Date().getFullYear();
+let editingId = null;
+let deductionMap = {}; // checkboxes for credit deduction
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+window.onload = () => {
+  // Year selector
+  const sel = document.getElementById('year-select');
+  for (let y = 2025; y <= 2030; y++) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y + ' 年';
+    if (y === currentYear) o.selected = true;
+    sel.appendChild(o);
+  }
+  sel.onchange = () => { currentYear = +sel.value; render(); };
+
+  // Nav
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.onclick = () => navigate(el.dataset.page);
+  });
+
+  buildDynamicNav();
+  buildModalDropdowns();
+
+  // Set today's date in form
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+  onCategoryChange();
+
+  // Init Google Auth (shows login screen if not signed in)
+  setSyncStatus('disconnected');
+  updateAuthButton();
+  initGoogleAuth();
+};
+
+function buildDynamicNav() {
+  const container = document.getElementById('category-nav-items');
+  container.innerHTML = getCategories().map(c => `
+    <div class="nav-item" data-page="cat_${c.key}" onclick="navigate('cat_${c.key}')">
+      <span class="icon">${c.icon}</span> ${c.label}
+    </div>`).join('');
+}
+
+function buildModalDropdowns() {
+  // Category dropdown
+  const catSel = document.getElementById('f-category');
+  catSel.innerHTML = getCategories().map(c =>
+    `<option value="${c.key}">${c.icon} ${c.label}</option>`
+  ).join('');
+
+  // Payment dropdown
+  const paymentSel = document.getElementById('f-payment');
+  paymentSel.innerHTML = getPaymentMethods().map(p =>
+    `<option value="${p.key}">${p.label}</option>`
+  ).join('');
+}
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+
+  // Determine title
+  let title = '';
+  if (page === 'dashboard') title = '仪表盘';
+  else if (page === 'expenses') title = '全部明细';
+  else if (page === 'import') title = '导入数据';
+  else if (page === 'settings') title = '系统设置';
+  else if (page.startsWith('cat_')) {
+    const key = page.slice(4);
+    const cat = getCategoryByKey(key);
+    title = cat ? `${cat.icon} ${cat.label}` : key;
+  }
+  document.getElementById('page-title').textContent = title;
+  render();
+}
+
+function render() {
+  const content = document.getElementById('content');
+  if (currentPage === 'dashboard') content.innerHTML = renderDashboard();
+  else if (currentPage === 'expenses') content.innerHTML = renderExpenses();
+  else if (currentPage === 'import') content.innerHTML = renderImport();
+  else if (currentPage === 'settings') content.innerHTML = renderSettings();
+  else if (currentPage.startsWith('cat_')) {
+    const key = currentPage.slice(4);
+    const cat = getCategoryByKey(key);
+    if (cat && cat.key === 'ella') content.innerHTML = renderElla();
+    else content.innerHTML = renderExpenses(key);
+  }
+
+  // init charts after render
+  if (currentPage === 'dashboard') initDashboardCharts();
+  if (currentPage.startsWith('cat_') && currentPage.slice(4) === 'ella') initEllaChart();
+  if (currentPage === 'settings') initSettingsPanel('categories');
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard() {
+  const all = filterByYear(getRecords(), currentYear);
+  const cats = getCategories();
+  const total = all.reduce((s, r) => s + cadAmount(r), 0);
+  const byCategory = {};
+  cats.forEach(c => {
+    byCategory[c.key] = filterByCategory(all, c.key).reduce((s,r) => s+cadAmount(r), 0);
+  });
+
+  // Find ella-like category (first one with key 'ella', or fallback)
+  const ellaCat = cats.find(c => c.key === 'ella') || cats[2] || cats[0];
+  const ellaTotal = byCategory[ellaCat?.key] || 0;
+  const monthly = {};
+  all.forEach(r => {
+    const m = r.date ? r.date.slice(0,7) : 'unknown';
+    monthly[m] = (monthly[m] || 0) + cadAmount(r);
+  });
+  const ellaMonthly = ellaTotal / Math.max(1, Object.keys(monthly).length);
+  const houseCat = cats.find(c => c.key === 'house') || cats[0];
+  const houseTotal = byCategory[houseCat?.key] || 0;
+
+  return `
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">${currentYear} 年总支出</div>
+      <div class="stat-value red">$${fmt(total)}</div>
+      <div class="stat-sub">CAD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${houseCat.icon} ${houseCat.label}</div>
+      <div class="stat-value">$${fmt(houseTotal)}</div>
+      <div class="stat-sub">${total ? pct(houseTotal/total) : '0%'} 占比</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${ellaCat.icon} ${ellaCat.label}</div>
+      <div class="stat-value" style="color:var(--primary)">$${fmt(ellaTotal)}</div>
+      <div class="stat-sub">月均 $${fmt(ellaMonthly)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">记录条数</div>
+      <div class="stat-value" style="color:var(--blue)">${all.length}</div>
+      <div class="stat-sub">笔支出记录</div>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">支出构成</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="pie-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">月度支出趋势</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="line-chart"></canvas>
+      </div>
+    </div>
+  </div>
+  ${renderRecentTable(all)}
+  `;
+}
+
+function renderRecentTable(all) {
+  const recent = [...all].sort((a,b) => b.date > a.date ? 1 : -1).slice(0, 8);
+  if (!recent.length) return `<div class="table-card"><div class="empty"><div class="empty-icon">📭</div><h3>暂无数据</h3><p>点击右上角"录入支出"开始记账</p></div></div>`;
+  return `
+  <div class="table-card">
+    <div class="table-header"><h3>最近记录</h3><a href="#" onclick="navigate('expenses');return false" style="font-size:12px;color:var(--primary)">查看全部 →</a></div>
+    <table>
+      <thead><tr>
+        <th>日期</th><th>大类</th><th>子类</th><th>支付方式</th><th style="text-align:right">金额 (CAD)</th>
+      </tr></thead>
+      <tbody>
+        ${recent.map(r => `<tr>
+          <td>${r.date}</td>
+          <td><span class="tag" style="background:${getCategoryColor(r.category)}22;color:${getCategoryColor(r.category)}">${getCategoryLabel(r.category)}</span></td>
+          <td>${r.subcategory || '-'}</td>
+          <td style="color:var(--text-muted);font-size:12px">${paymentLabel(r.payment)}</td>
+          <td style="text-align:right">
+            <span class="amount-cad">$${fmt(cadAmount(r))}</span>
+            ${r.currency==='CNY' ? `<br><span class="amount-cny">¥${fmt(r.cnyAmount||r.amount)}</span>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function initDashboardCharts() {
+  const all = filterByYear(getRecords(), currentYear);
+  const cats = getCategories();
+
+  const byCategory = {};
+  cats.forEach(c => {
+    byCategory[c.key] = filterByCategory(all, c.key).reduce((s,r) => s+cadAmount(r), 0);
+  });
+
+  // Pie
+  const pieCanvas = document.getElementById('pie-chart');
+  if (pieCanvas) {
+    new Chart(pieCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: cats.map(c => c.label),
+        datasets: [{
+          data: cats.map(c => +byCategory[c.key].toFixed(2)),
+          backgroundColor: cats.map(c => c.color),
+          borderWidth: 0,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { family: "'Noto Sans SC'" }, padding: 14, boxWidth: 12 } },
+          tooltip: { callbacks: { label: ctx => ` $${fmt(ctx.parsed)} CAD` } }
+        }
+      }
+    });
+  }
+
+  // Bar stacked
+  const months = [];
+  for (let m = 1; m <= 12; m++) months.push(`${currentYear}-${String(m).padStart(2,'0')}`);
+
+  const lineCanvas = document.getElementById('line-chart');
+  if (lineCanvas) {
+    new Chart(lineCanvas, {
+      type: 'bar',
+      data: {
+        labels: months.map(m => m.slice(5) + '月'),
+        datasets: cats.map(c => ({
+          label: c.label,
+          data: months.map(m =>
+            filterByCategory(all, c.key).filter(r => r.date && r.date.startsWith(m)).reduce((s,r) => s+cadAmount(r), 0)
+          ),
+          backgroundColor: c.color + 'cc',
+          borderRadius: 4,
+          borderSkipped: false
+        }))
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, ticks: { callback: v => '$'+v } }
+        },
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { family: "'Noto Sans SC'" }, padding: 10, boxWidth: 10 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: $${fmt(ctx.parsed.y)}` } }
+        }
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  EXPENSES (all)
+// ═══════════════════════════════════════════════
+function renderExpenses(filterCat = null, filterMonth = null) {
+  let all = filterByYear(getRecords(), currentYear);
+  if (filterCat) all = filterByCategory(all, filterCat);
+
+  all.sort((a,b) => b.date > a.date ? 1 : -1);
+
+  const months = [...new Set(all.map(r => r.date ? r.date.slice(0,7) : ''))].filter(Boolean).sort().reverse();
+  const total = all.reduce((s,r) => s+cadAmount(r), 0);
+
+  return `
+  <div class="table-card">
+    <div class="table-header">
+      <h3>${filterCat ? CATEGORY_LABELS[filterCat] : '全部支出'} · 共 $${fmt(total)} CAD</h3>
+      <div class="filter-row">
+        <select class="filter-select" id="filter-month-sel">
+          <option value="">全部月份</option>
+          ${months.map(m => `<option value="${m}">${m}</option>`).join('')}
+        </select>
+        <select class="filter-select" onchange="if(this.value) navigate('cat_'+this.value); else navigate('expenses')">
+          <option value="">全部类别</option>
+          ${getCategories().map(c => `<option value="${c.key}" ${filterCat===c.key?'selected':''}>${c.icon} ${c.label}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    ${months.length === 0 ? `<div class="empty"><div class="empty-icon">📭</div><h3>暂无数据</h3><p>点击右上角"录入支出"开始记账</p></div>` : ''}
+    ${months.map(m => {
+      const rows = all.filter(r => r.date && r.date.startsWith(m));
+      const mTotal = rows.reduce((s,r) => s+cadAmount(r), 0);
+      return `
+      <div class="month-group-header">
+        <span>${m.slice(0,4)}年 ${+m.slice(5)}月</span>
+        <span>$${fmt(mTotal)} CAD · ${rows.length} 笔</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>日期</th><th>大类</th><th>子类</th><th>支付方式</th><th>备注</th><th style="text-align:right">金额</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => `<tr>
+            <td>${r.date}</td>
+            <td><span class="tag" style="background:${getCategoryColor(r.category)}22;color:${getCategoryColor(r.category)}">${getCategoryLabel(r.category)}</span></td>
+            <td>${r.subcategory||'-'}</td>
+            <td style="color:var(--text-muted);font-size:12px">${paymentLabel(r.payment)}</td>
+            <td style="color:var(--text-muted);font-size:12px;max-width:180px">${r.note||''}</td>
+            <td style="text-align:right">
+              <span class="amount-cad">$${fmt(cadAmount(r))}</span>
+              ${r.currency==='CNY' ? `<br><span class="amount-cny">¥${fmt(r.cnyAmount||r.amount)}</span>` : ''}
+              ${r.inCredit==='yes' ? '<br><span style="font-size:10px;color:var(--text-muted)">📌含信用卡</span>' : ''}
+            </td>
+            <td>
+              <button class="btn-icon" onclick="editRecord(${r.id})" title="编辑">✏️</button>
+              <button class="btn-icon" onclick="confirmDelete(${r.id})" title="删除">🗑️</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderCategory(cat) {
+  return renderExpenses(cat);
+}
+
+// ═══════════════════════════════════════════════
+//  ELLA (special category with subcategory detail view)
+// ═══════════════════════════════════════════════
+function renderElla() {
+  const ellaCat = getCategoryByKey('ella');
+  const catKey = ellaCat ? 'ella' : (getCategories()[0]?.key || 'ella');
+  const all = filterByYear(filterByCategory(getRecords(), catKey), currentYear);
+
+  const bySubcat = {};
+  all.forEach(r => {
+    if (!bySubcat[r.subcategory]) bySubcat[r.subcategory] = [];
+    bySubcat[r.subcategory].push(r);
+  });
+
+  const filled = Object.entries(bySubcat).filter(([,arr]) => arr.length > 0);
+  const total = all.reduce((s,r) => s+cadAmount(r), 0);
+  const label = ellaCat ? ellaCat.label : catKey;
+
+  return `
+  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card">
+      <div class="stat-label">${label} 年度总费用</div>
+      <div class="stat-value red">$${fmt(total)}</div>
+      <div class="stat-sub">CAD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">月均费用</div>
+      <div class="stat-value" style="color:var(--primary)">$${fmt(total/12)}</div>
+      <div class="stat-sub">按12个月摊算</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">科目数量</div>
+      <div class="stat-value" style="color:var(--blue)">${filled.length}</div>
+      <div class="stat-sub">有费用记录的科目</div>
+    </div>
+  </div>
+  ${filled.length > 0 ? `
+  <div class="chart-grid" style="margin-bottom:24px">
+    <div class="chart-card">
+      <div class="chart-title">科目费用占比</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ella-pie"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">按科目详情</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        ${filled.map(([name, arr]) => {
+          const sub = arr.reduce((s,r) => s+cadAmount(r), 0);
+          return `<div class="ella-card">
+            <div class="ella-card-name">${name}</div>
+            <div class="ella-card-amount">$${fmt(sub)}</div>
+            <div class="ella-card-count">${arr.length} 笔 · 月均 $${fmt(sub/12)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>` : ''}
+  ${renderExpenses(catKey)}
+  `;
+}
+
+function initEllaChart() {
+  const all = filterByYear(filterByCategory(getRecords(), 'ella'), currentYear);
+  const bySubcat = {};
+  all.forEach(r => {
+    bySubcat[r.subcategory] = (bySubcat[r.subcategory] || 0) + cadAmount(r);
+  });
+
+  const colors = ['#e8622a','#2d6fe8','#2d9e6b','#9b59b6','#f0a500','#e84040','#1abc9c','#e74c3c','#3498db','#e67e22'];
+  const canvas = document.getElementById('ella-pie');
+  if (canvas && Object.keys(bySubcat).length > 0) {
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(bySubcat),
+        datasets: [{
+          data: Object.values(bySubcat).map(v => +v.toFixed(2)),
+          backgroundColor: colors,
+          borderWidth: 0,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { family: "'Noto Sans SC'" }, padding: 10, boxWidth: 10 } },
+          tooltip: { callbacks: { label: ctx => ` $${fmt(ctx.parsed)} CAD` } }
+        }
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  IMPORT
+// ═══════════════════════════════════════════════
+function renderImport() {
+  return `
+  <div style="max-width:700px">
+    <div class="drive-banner">
+      <div>
+        <strong>📥 导入历史数据（2025年1月起）</strong>
+        <p>下载 CSV 模板，填入 Google Sheet 数据后上传</p>
+      </div>
+      <button class="btn" style="background:#fff;color:#1a6fc4;font-weight:600" onclick="downloadTemplate()">下载模板</button>
+    </div>
+    <div class="import-zone" onclick="document.getElementById('csv-input').click()"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="handleDrop(event)">
+      <div class="import-icon">📂</div>
+      <h3>拖拽 CSV 文件到此处，或点击选择文件</h3>
+      <p>支持标准 CSV 格式，UTF-8 编码</p>
+      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFileSelect(event)">
+    </div>
+    <div id="import-preview"></div>
+    <div style="margin-top:24px">
+      <div class="chart-card">
+        <div class="chart-title">CSV 格式说明</div>
+        <table style="margin-top:8px">
+          <thead><tr>
+            <th>字段</th><th>说明</th><th>示例</th>
+          </tr></thead>
+          <tbody>
+            <tr><td>date</td><td>日期</td><td>2025-01-15</td></tr>
+            <tr><td>category</td><td>大类</td><td>house / bill / ella / credit</td></tr>
+            <tr><td>subcategory</td><td>子类</td><td>房贷 / 钢琴 / 电费 Hydro</td></tr>
+            <tr><td>amount</td><td>金额（CAD）</td><td>8747.65</td></tr>
+            <tr><td>currency</td><td>货币（可选）</td><td>CAD / CNY</td></tr>
+            <tr><td>cnyAmount</td><td>人民币金额（CNY时填）</td><td>1200</td></tr>
+            <tr><td>rate</td><td>汇率（CNY时填）</td><td>0.19</td></tr>
+            <tr><td>payment</td><td>支付方式</td><td>credit / bank / cash / wechat</td></tr>
+            <tr><td>inCredit</td><td>是否含信用卡（可选）</td><td>yes / no</td></tr>
+            <tr><td>note</td><td>备注（可选）</td><td>1月账单</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function downloadTemplate() {
+  const headers = 'date,category,subcategory,amount,currency,cnyAmount,rate,payment,inCredit,note';
+  const examples = [
+    '2025-01-01,house,房贷,8747.65,CAD,,,credit,,',
+    '2025-01-01,bill,电费 Hydro,107.75,CAD,,,credit,yes,1月电费',
+    '2025-01-01,ella,钢琴,1425,CAD,,,credit,,',
+    '2025-01-01,credit,信用卡账单,8394.22,CAD,,,credit,,'
+  ].join('\n');
+  const blob = new Blob([headers + '\n' + examples], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'family_finance_template.csv';
+  a.click();
+  toast('模板已下载！');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) processCSV(file);
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processCSV(file);
+}
+
+function processCSV(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+    const headers = lines[0].split(',');
+    const records = [];
+    const errors = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].split(',');
+      const obj = {};
+      headers.forEach((h, idx) => obj[h.trim()] = (vals[idx] || '').trim());
+      if (!obj.date || !obj.category || !obj.amount) {
+        errors.push(`第${i+1}行：缺少必填字段`);
+        continue;
+      }
+      obj.amount = parseFloat(obj.amount) || 0;
+      obj.cnyAmount = parseFloat(obj.cnyAmount) || 0;
+      obj.rate = parseFloat(obj.rate) || 0.19;
+      if (!obj.currency) obj.currency = 'CAD';
+      if (!obj.payment) obj.payment = 'credit';
+      records.push(obj);
+    }
+
+    const preview = document.getElementById('import-preview');
+    preview.innerHTML = `
+    <div class="import-preview">
+      <div class="table-header">
+        <h3>预览：${records.length} 条记录${errors.length ? `，${errors.length} 条错误` : ''}</h3>
+        <button class="btn btn-primary btn-sm" onclick="confirmImport(${JSON.stringify(records).replace(/"/g,'&quot;')})">确认导入</button>
+      </div>
+      <table>
+        <thead><tr><th>日期</th><th>大类</th><th>子类</th><th>金额(CAD)</th><th>支付</th><th>备注</th></tr></thead>
+        <tbody>
+          ${records.slice(0,10).map(r => `<tr>
+            <td>${r.date}</td>
+            <td>${CATEGORY_LABELS[r.category]||r.category}</td>
+            <td>${r.subcategory}</td>
+            <td class="amount-cad">$${fmt(r.currency==='CNY' ? (r.cnyAmount||r.amount)*(r.rate||0.19) : r.amount)}</td>
+            <td>${paymentLabel(r.payment)}</td>
+            <td style="color:var(--text-muted);font-size:12px">${r.note||''}</td>
+          </tr>`).join('')}
+          ${records.length > 10 ? `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);font-size:12px">...还有 ${records.length-10} 条</td></tr>` : ''}
+        </tbody>
+      </table>
+      ${errors.length ? `<div style="padding:12px 16px;font-size:12px;color:var(--red)">${errors.join('<br>')}</div>` : ''}
+    </div>`;
+
+    window._importRecords = records;
+  };
+  reader.readAsText(file);
+}
+
+function confirmImport(records) {
+  const toImport = window._importRecords || records;
+  const existing = loadData();
+  const merged = [...existing, ...toImport.map(r => ({...r, id: Date.now() + Math.random()}))];
+  saveData(merged);
+  toast(`✅ 成功导入 ${toImport.length} 条记录！`);
+  document.getElementById('import-preview').innerHTML = '';
+  render();
+}
+
+// ═══════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title-text').textContent = '录入支出';
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-category').value = 'house';
+  document.getElementById('f-payment').value = 'credit';
+  document.getElementById('f-amount').value = '';
+  document.getElementById('f-currency').value = 'CAD';
+  document.getElementById('f-note').value = '';
+  document.getElementById('f-in-credit').value = 'no';
+  onCategoryChange();
+  onCurrencyChange();
+  showModal();
+}
+
+function editRecord(id) {
+  const r = getRecords().find(rec => rec.id === id);
+  if (!r) return;
+  editingId = id;
+  document.getElementById('modal-title-text').textContent = '编辑支出';
+  document.getElementById('f-date').value = r.date;
+  document.getElementById('f-category').value = r.category;
+  onCategoryChange();
+  document.getElementById('f-subcategory').value = r.subcategory;
+  document.getElementById('f-payment').value = r.payment || 'credit';
+  document.getElementById('f-amount').value = r.amount;
+  document.getElementById('f-currency').value = r.currency || 'CAD';
+  document.getElementById('f-note').value = r.note || '';
+  document.getElementById('f-in-credit').value = r.inCredit || 'no';
+  if (r.currency === 'CNY') {
+    document.getElementById('f-cny-amount').value = r.cnyAmount || '';
+    document.getElementById('f-rate').value = r.rate || 0.19;
+    document.getElementById('cny-fields').classList.add('show');
+  } else {
+    document.getElementById('cny-fields').classList.remove('show');
+  }
+  onCurrencyChange();
+  showModal();
+}
+
+function showModal() { document.getElementById('modal').classList.add('open'); }
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function onCategoryChange() {
+  const cat = document.getElementById('f-category').value;
+  const sub = document.getElementById('f-subcategory');
+  const cats = getCategories();
+  const catObj = cats.find(c => c.key === cat);
+  const subcats = catObj ? catObj.subcategories : [];
+  sub.innerHTML = subcats.map(s => `<option>${s}</option>`).join('');
+
+  // Credit category: show deduction section
+  const isCredit = cat === 'credit';
+  const deductSec = document.getElementById('credit-deduct-section');
+  if (isCredit) {
+    deductSec.style.display = 'block';
+    loadDeductList();
+  } else {
+    deductSec.style.display = 'none';
+  }
+  document.getElementById('credit-deduct-wrap').style.display = isCredit ? 'none' : 'flex';
+}
+
+function onPaymentChange() {
+  const p = document.getElementById('f-payment').value;
+  if (p === 'wechat') {
+    document.getElementById('f-currency').value = 'CNY';
+    onCurrencyChange();
+  }
+}
+
+function onCurrencyChange() {
+  const cur = document.getElementById('f-currency').value;
+  if (cur === 'CNY') {
+    document.getElementById('cny-fields').classList.add('show');
+  } else {
+    document.getElementById('cny-fields').classList.remove('show');
+  }
+}
+
+function updateCnyCalc() {
+  const cny = parseFloat(document.getElementById('f-cny-amount')?.value) || 0;
+  const rate = parseFloat(document.getElementById('f-rate')?.value) || 0.19;
+  document.getElementById('cny-calc').textContent = `≈ CAD ${fmt(cny * rate)}`;
+}
+
+function loadDeductList() {
+  const date = document.getElementById('f-date').value;
+  const month = date ? date.slice(0,7) : new Date().toISOString().slice(0,7);
+  const records = getRecords().filter(r =>
+    r.date && r.date.startsWith(month) &&
+    r.category !== 'credit' &&
+    (r.inCredit === 'yes' || r.payment === 'credit')
+  );
+
+  const list = document.getElementById('deduct-list');
+  const totalEl = document.getElementById('deduct-total');
+
+  if (!records.length) {
+    list.innerHTML = '<span style="color:var(--text-muted)">本月暂无已标记"含信用卡"的项目</span>';
+    totalEl.textContent = '';
+    return;
+  }
+
+  list.innerHTML = records.map(r => `
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="deduct-${r.id}" value="${cadAmount(r).toFixed(2)}" onchange="updateDeductTotal()">
+      <span>${r.date} · ${r.subcategory} · </span>
+      <strong>$${fmt(cadAmount(r))}</strong>
+      ${r.note ? `<span style="color:var(--text-muted);font-size:11px">(${r.note})</span>` : ''}
+    </label>`).join('');
+
+  updateDeductTotal();
+}
+
+function updateDeductTotal() {
+  let total = 0;
+  document.querySelectorAll('[id^="deduct-"]:checked').forEach(el => {
+    total += parseFloat(el.value) || 0;
+  });
+  const totalEl = document.getElementById('deduct-total');
+  if (totalEl) totalEl.textContent = total > 0 ? `✅ 将从账单中扣除 $${fmt(total)} → 净额 = 账单金额 - $${fmt(total)}` : '';
+}
+
+function saveRecord() {
+  const date = document.getElementById('f-date').value;
+  const category = document.getElementById('f-category').value;
+  const subcategory = document.getElementById('f-subcategory').value;
+  const payment = document.getElementById('f-payment').value;
+  const currency = document.getElementById('f-currency').value;
+  const note = document.getElementById('f-note').value.trim();
+  const inCredit = document.getElementById('f-in-credit').value;
+
+  let amount, cnyAmount, rate;
+  if (currency === 'CNY') {
+    cnyAmount = parseFloat(document.getElementById('f-cny-amount').value) || 0;
+    rate = parseFloat(document.getElementById('f-rate').value) || 0.19;
+    amount = cnyAmount * rate;
+  } else {
+    amount = parseFloat(document.getElementById('f-amount').value) || 0;
+  }
+
+  if (!date || !category || amount <= 0) {
+    toast('❌ 请填写日期、类别和金额');
+    return;
+  }
+
+  // Calculate deductions for credit
+  let deductions = [];
+  if (category === 'credit') {
+    document.querySelectorAll('[id^="deduct-"]:checked').forEach(el => {
+      const id = el.id.replace('deduct-','');
+      deductions.push({ id, amount: parseFloat(el.value) });
+    });
+    const deductTotal = deductions.reduce((s,d) => s+d.amount, 0);
+    amount = Math.max(0, amount - deductTotal);
+  }
+
+  const rec = { date, category, subcategory, amount, currency, note, payment, inCredit };
+  if (currency === 'CNY') { rec.cnyAmount = cnyAmount; rec.rate = rate; }
+  if (deductions.length) rec.deductions = deductions;
+
+  if (editingId) {
+    updateRecord(editingId, rec);
+    toast('✅ 已更新');
+  } else {
+    addRecord(rec);
+    toast('✅ 已保存');
+  }
+
+  closeModal();
+  render();
+}
+
+function confirmDelete(id) {
+  if (confirm('确认删除这条记录？')) {
+    deleteRecord(id);
+    toast('已删除');
+    render();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  GOOGLE DRIVE INTEGRATION
+// ═══════════════════════════════════════════════
+
+const GDRIVE = {
+  // Scopes needed: Drive file access (only files created by this app)
+  SCOPE: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
+  FILE_NAME: 'family-finance-data.json',
+  SETTINGS_FILE_NAME: 'family-finance-settings.json',
+  tokenClient: null,
+  accessToken: null,
+  dataFileId: null,
+  settingsFileId: null,
+  isSyncing: false,
+  syncTimer: null,
+  pendingSync: false,
+};
+
+// ── Client ID management ──
+function getClientId() {
+  return localStorage.getItem('ff_google_client_id') || '';
+}
+
+function saveClientId(id) {
+  localStorage.setItem('ff_google_client_id', id.trim());
+}
+
+function saveClientIdFromLogin() {
+  const val = document.getElementById('login-client-id-input')?.value?.trim();
+  if (!val || !val.includes('.apps.googleusercontent.com')) {
+    showLoginError('请输入有效的 Client ID（以 .apps.googleusercontent.com 结尾）');
+    return;
+  }
+  saveClientId(val);
+  initGoogleAuth();
+  gdriveSignIn();
+}
+
+// ── Init Google Auth ──
+function initGoogleAuth() {
+  const clientId = getClientId();
+  if (!clientId) {
+    setSyncStatus('unconfigured');
+    document.getElementById('login-setup-section').style.display = 'block';
+    return;
+  }
+  document.getElementById('login-setup-section').style.display = 'none';
+
+  if (typeof google === 'undefined') {
+    // GIS script not loaded yet, retry
+    setTimeout(initGoogleAuth, 500);
+    return;
+  }
+
+  GDRIVE.tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GDRIVE.SCOPE,
+    callback: handleTokenResponse,
+    error_callback: (err) => {
+      console.error('OAuth error:', err);
+      showLoginError('登录失败：' + (err.message || err.type || '未知错误'));
+      setSyncStatus('error');
+    }
+  });
+
+  // Try silent token refresh (if previously logged in)
+  const savedToken = sessionStorage.getItem('ff_access_token');
+  if (savedToken) {
+    GDRIVE.accessToken = savedToken;
+    onSignedIn();
+  } else {
+    setSyncStatus('disconnected');
+    updateAuthButton();
+  }
+}
+
+function gdriveSignIn() {
+  if (!getClientId()) {
+    showLoginError('请先填写 Client ID');
+    document.getElementById('login-setup-section').style.display = 'block';
+    return;
+  }
+  if (!GDRIVE.tokenClient) {
+    initGoogleAuth();
+    setTimeout(gdriveSignIn, 600);
+    return;
+  }
+  GDRIVE.tokenClient.requestAccessToken({ prompt: '' });
+}
+
+function gdriveSignOut() {
+  if (GDRIVE.accessToken) {
+    google.accounts.oauth2.revoke(GDRIVE.accessToken, () => {});
+  }
+  GDRIVE.accessToken = null;
+  GDRIVE.dataFileId = null;
+  GDRIVE.settingsFileId = null;
+  sessionStorage.removeItem('ff_access_token');
+  setSyncStatus('disconnected');
+  updateAuthButton();
+  // Show login screen
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+async function handleTokenResponse(response) {
+  if (response.error) {
+    showLoginError('授权失败: ' + response.error);
+    setSyncStatus('error');
+    return;
+  }
+  GDRIVE.accessToken = response.access_token;
+  sessionStorage.setItem('ff_access_token', response.access_token);
+
+  // Token expires, auto-refresh before expiry
+  const expiresIn = (response.expires_in || 3600) - 60;
+  setTimeout(() => {
+    GDRIVE.tokenClient.requestAccessToken({ prompt: '' });
+  }, expiresIn * 1000);
+
+  await onSignedIn();
+}
+
+async function onSignedIn() {
+  setSyncStatus('syncing');
+  updateAuthButton();
+
+  try {
+    // Load remote data first, then hide login screen
+    await syncFromDrive();
+    document.getElementById('login-screen').classList.add('hidden');
+    setSyncStatus('synced');
+    updateAuthButton();
+    render();
+    toast('✅ 已连接 Google Drive');
+  } catch(err) {
+    console.error('Sync error:', err);
+    if (err.status === 401) {
+      // Token expired, re-auth
+      GDRIVE.accessToken = null;
+      sessionStorage.removeItem('ff_access_token');
+      setSyncStatus('disconnected');
+      document.getElementById('login-screen').classList.remove('hidden');
+    } else {
+      // Network error - use local data
+      document.getElementById('login-screen').classList.add('hidden');
+      setSyncStatus('local');
+      toast('⚠️ 无法连接 Drive，使用本地数据');
+    }
+  }
+}
+
+// ── Drive API Helpers ──
+async function driveRequest(method, path, body, params) {
+  const url = new URL('https://www.googleapis.com' + path);
+  if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  
+  const res = await fetch(url.toString(), {
+    method,
+    headers: {
+      'Authorization': 'Bearer ' + GDRIVE.accessToken,
+      ...(body ? { 'Content-Type': 'application/json' } : {})
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+
+  if (!res.ok) {
+    const err = new Error('Drive API error: ' + res.status);
+    err.status = res.status;
+    throw err;
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+async function findOrCreateFile(name, cachedId) {
+  // Search for existing file
+  if (!cachedId) {
+    const result = await driveRequest('GET', '/drive/v3/files', null, {
+      q: `name='${name}' and trashed=false`,
+      spaces: 'drive',
+      fields: 'files(id,name)'
+    });
+    if (result.files && result.files.length > 0) {
+      return result.files[0].id;
+    }
+  }
+
+  // Create new file if not found
+  const meta = { name, mimeType: 'application/json' };
+  const file = await driveRequest('POST', '/drive/v3/files', meta);
+  return file.id;
+}
+
+async function readDriveFile(fileId) {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { 'Authorization': 'Bearer ' + GDRIVE.accessToken } }
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw Object.assign(new Error('Read failed'), { status: res.status });
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function writeDriveFile(fileId, data) {
+  await fetch(
+    `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'Bearer ' + GDRIVE.accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    }
+  );
+}
+
+// ── Sync Logic ──
+async function syncFromDrive() {
+  // Find or create data file
+  GDRIVE.dataFileId = await findOrCreateFile(GDRIVE.FILE_NAME, GDRIVE.dataFileId);
+  GDRIVE.settingsFileId = await findOrCreateFile(GDRIVE.SETTINGS_FILE_NAME, GDRIVE.settingsFileId);
+
+  // Read remote data
+  const [remoteData, remoteSettings] = await Promise.all([
+    readDriveFile(GDRIVE.dataFileId),
+    readDriveFile(GDRIVE.settingsFileId)
+  ]);
+
+  // Merge strategy: remote wins, but merge with local if remote is empty
+  if (remoteData && remoteData.records) {
+    const localData = loadData();
+    // If local has records that remote doesn't, upload local to remote
+    if (localData.length > 0 && remoteData.records.length === 0) {
+      await writeDriveFile(GDRIVE.dataFileId, { records: localData, lastModified: Date.now() });
+    } else {
+      saveData(remoteData.records);
+    }
+  } else {
+    // No remote data, upload local
+    const localData = loadData();
+    await writeDriveFile(GDRIVE.dataFileId, { records: localData, lastModified: Date.now() });
+  }
+
+  if (remoteSettings && remoteSettings.settings) {
+    const localSettings = loadSettings();
+    const remoteTime = remoteSettings.lastModified || 0;
+    const localTime = parseInt(localStorage.getItem('ff_settings_time') || '0');
+    if (remoteTime >= localTime) {
+      saveSettings(remoteSettings.settings);
+    } else {
+      await writeDriveFile(GDRIVE.settingsFileId, {
+        settings: localSettings,
+        lastModified: Date.now()
+      });
+    }
+  } else {
+    await writeDriveFile(GDRIVE.settingsFileId, {
+      settings: loadSettings(),
+      lastModified: Date.now()
+    });
+  }
+}
+
+async function syncToDrive() {
+  if (!GDRIVE.accessToken || !GDRIVE.dataFileId) return;
+  if (GDRIVE.isSyncing) { GDRIVE.pendingSync = true; return; }
+
+  GDRIVE.isSyncing = true;
+  setSyncStatus('syncing');
+
+  try {
+    await Promise.all([
+      writeDriveFile(GDRIVE.dataFileId, { records: loadData(), lastModified: Date.now() }),
+      writeDriveFile(GDRIVE.settingsFileId, { settings: loadSettings(), lastModified: Date.now() })
+    ]);
+    setSyncStatus('synced');
+  } catch(err) {
+    console.error('Sync to drive failed:', err);
+    setSyncStatus('error');
+    if (err.status === 401) {
+      GDRIVE.accessToken = null;
+      sessionStorage.removeItem('ff_access_token');
+      initGoogleAuth();
+    }
+  } finally {
+    GDRIVE.isSyncing = false;
+    if (GDRIVE.pendingSync) {
+      GDRIVE.pendingSync = false;
+      setTimeout(syncToDrive, 1000);
+    }
+  }
+}
+
+// Debounced auto-sync after data changes
+function scheduleSync() {
+  if (GDRIVE.syncTimer) clearTimeout(GDRIVE.syncTimer);
+  GDRIVE.syncTimer = setTimeout(syncToDrive, 2000);
+}
+
+// ── UI Helpers ──
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  const text = document.getElementById('sync-text');
+  if (!dot || !text) return;
+  dot.className = 'sync-dot';
+  const states = {
+    synced:       { cls: 'synced', label: '已同步' },
+    syncing:      { cls: 'syncing', label: '同步中...' },
+    disconnected: { cls: '',       label: '未登录' },
+    local:        { cls: 'local',  label: '本地模式' },
+    error:        { cls: 'error',  label: '同步失败' },
+    unconfigured: { cls: '',       label: '未配置' },
+  };
+  const s = states[state] || states.disconnected;
+  dot.classList.add(s.cls);
+  text.textContent = s.label;
+}
+
+function updateAuthButton() {
+  const wrap = document.getElementById('auth-btn-wrap');
+  if (!wrap) return;
+  if (GDRIVE.accessToken) {
+    wrap.innerHTML = `<button class="btn btn-outline btn-sm" style="width:100%;font-size:11px" onclick="gdriveSignOut()">退出登录</button>`;
+  } else {
+    wrap.innerHTML = `<button class="btn btn-outline btn-sm" style="width:100%" onclick="gdriveSignIn()">🔗 登录 Google</button>`;
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+
+function renderGdriveSettings() {
+  const clientId = getClientId();
+  const isConnected = !!GDRIVE.accessToken;
+  return `
+  <div class="settings-panel">
+    <h2>💾 Google Drive 同步</h2>
+    <p class="settings-desc">将数据同步到你的 Google Drive，实现多设备访问和自动备份。</p>
+
+    <div style="border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
+      <div style="padding:16px 20px;background:#faf9f6;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:14px;font-weight:600">连接状态</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${isConnected ? '✅ 已连接 Google Drive' : '❌ 未连接'}</div>
+        </div>
+        ${isConnected
+          ? `<button class="btn btn-danger btn-sm" onclick="gdriveSignOut()">退出登录</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="gdriveSignIn()">立即登录</button>`}
+      </div>
+      <div style="padding:16px 20px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
+          Google OAuth Client ID
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="settings-client-id" value="${clientId}"
+            placeholder="xxxx.apps.googleusercontent.com"
+            style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-family:var(--mono);color:var(--text);background:var(--bg)">
+          <button class="btn btn-outline" onclick="saveClientIdFromSettings()">保存</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">
+          在 Google Cloud Console 创建 OAuth 2.0 客户端 ID 后填入此处
+        </div>
+      </div>
+    </div>
+
+    <div style="border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 20px;background:#faf9f6;border-bottom:1px solid var(--border)">
+        <div style="font-size:14px;font-weight:600">配置指引</div>
+      </div>
+      <div style="padding:16px 20px;font-size:13px;line-height:1.9">
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">1</div>
+          <div>打开 <a href="https://console.cloud.google.com/" target="_blank" style="color:#4285F4">Google Cloud Console</a>，创建新项目（或选择已有项目）</div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">2</div>
+          <div>左侧菜单 → <strong>API 和服务</strong> → <strong>启用 API</strong> → 搜索并启用 <strong>Google Drive API</strong></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">3</div>
+          <div>左侧菜单 → <strong>凭据</strong> → <strong>创建凭据</strong> → <strong>OAuth 客户端 ID</strong><br>
+            类型选 <strong>Web 应用</strong>，名称随意<br>
+            <strong>已授权的 JavaScript 来源</strong> 填入你的 GitHub Pages 地址，例如：<br>
+            <code style="background:#f4f3ef;padding:2px 6px;border-radius:4px;font-size:11px">https://yourusername.github.io</code></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">4</div>
+          <div>创建后复制 <strong>客户端 ID</strong>，填入上方输入框</div>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">5</div>
+          <div>左侧 → <strong>OAuth 同意屏幕</strong>，发布状态选 <strong>测试</strong>，在"测试用户"里添加你和老婆的 Google 邮箱</div>
+        </div>
+        <div style="padding:10px 14px;background:#f0f8f0;border:1px solid #c8e6c9;border-radius:10px;font-size:12px;color:#2e7d32;margin-top:4px">
+          💡 数据文件 <strong>family-finance-data.json</strong> 会自动保存在你 Google Drive 的根目录，可随时用 Google Drive 备份或查看。
+        </div>
+      </div>
+    </div>
+
+    ${isConnected ? `
+    <div style="border:1.5px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="padding:14px 20px;background:#faf9f6;border-bottom:1px solid var(--border)">
+        <div style="font-size:14px;font-weight:600">手动操作</div>
+      </div>
+      <div style="padding:14px 20px;display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="forceSyncNow()">⬆ 立即上传到 Drive</button>
+        <button class="btn btn-outline" onclick="forcePullNow()">⬇ 从 Drive 重新拉取</button>
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+function saveClientIdFromSettings() {
+  const val = document.getElementById('settings-client-id')?.value?.trim();
+  if (!val) { toast('❌ 请填写 Client ID'); return; }
+  saveClientId(val);
+  initGoogleAuth();
+  toast('✅ Client ID 已保存');
+}
+
+async function forceSyncNow() {
+  toast('上传中...');
+  await syncToDrive();
+  toast('✅ 已上传到 Drive');
+}
+
+async function forcePullNow() {
+  if (!confirm('从 Drive 拉取将覆盖本地数据，确认继续？')) return;
+  toast('拉取中...');
+  await syncFromDrive();
+  render();
+  toast('✅ 已从 Drive 拉取最新数据');
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS PAGE
+// ═══════════════════════════════════════════════
+let settingsTab = 'categories';
+
+function renderSettings() {
+  return `
+  <div class="settings-grid">
+    <div>
+      <div class="settings-sidebar-nav">
+        <div class="settings-nav-item ${settingsTab==='categories'?'active':''}" onclick="initSettingsPanel('categories')">
+          <span class="s-icon">🗂️</span> 支出大类 & 子类
+        </div>
+        <div class="settings-nav-item ${settingsTab==='payments'?'active':''}" onclick="initSettingsPanel('payments')">
+          <span class="s-icon">💳</span> 支付方式
+        </div>
+        <div class="settings-nav-item ${settingsTab==='gdrive'?'active':''}" onclick="initSettingsPanel('gdrive')">
+          <span class="s-icon">💾</span> Google Drive
+        </div>
+        <div class="settings-nav-item ${settingsTab==='danger'?'active':''}" onclick="initSettingsPanel('danger')">
+          <span class="s-icon">⚠️</span> 危险操作
+        </div>
+      </div>
+    </div>
+    <div id="settings-panel-content">
+      <!-- populated by initSettingsPanel -->
+    </div>
+  </div>`;
+}
+
+function initSettingsPanel(tab) {
+  settingsTab = tab;
+  // Update active state
+  document.querySelectorAll('.settings-nav-item').forEach(el => {
+    const map = { categories: '支出大类', payments: '支付方式', gdrive: 'Google Drive', danger: '危险' };
+    el.classList.toggle('active', el.textContent.includes(map[tab] || ''));
+  });
+
+  const panel = document.getElementById('settings-panel-content');
+  if (!panel) return;
+
+  if (tab === 'categories') panel.innerHTML = renderCategoriesSettings();
+  else if (tab === 'payments') panel.innerHTML = renderPaymentsSettings();
+  else if (tab === 'gdrive') panel.innerHTML = renderGdriveSettings();
+  else if (tab === 'danger') panel.innerHTML = renderDangerSettings();
+}
+
+function renderCategoriesSettings() {
+  const cats = getCategories();
+  return `
+  <div class="settings-panel">
+    <h2>支出大类 & 子类</h2>
+    <p class="settings-desc">管理支出的分类结构。修改后点击"保存设置"生效。删除大类不会删除已有记录，但记录将不再显示在对应分类下。</p>
+    <div class="settings-warning">
+      💡 提示：大类的"键名"（灰色小标签）是系统内部标识，一旦有数据后不建议修改。子类名称可随时修改。
+    </div>
+    <div id="categories-editor">
+      ${cats.map((c, ci) => renderCategoryBlock(c, ci)).join('')}
+    </div>
+    <div class="add-category-btn" onclick="addNewCategory()">
+      ＋ 添加新大类
+    </div>
+    <div class="settings-save-bar">
+      <button class="btn btn-outline" onclick="resetSettingsToDefault()">恢复默认</button>
+      <button class="btn btn-primary" onclick="saveCategoriesSettings()">保存设置</button>
+    </div>
+  </div>`;
+}
+
+function renderCategoryBlock(c, ci) {
+  return `
+  <div class="category-block" id="cat-block-${ci}">
+    <div class="category-block-header">
+      <div class="category-block-header-left">
+        <div class="color-picker-wrap">
+          <input type="color" value="${c.color}" id="cat-color-${ci}" onchange="document.getElementById('cat-dot-${ci}').style.background=this.value">
+          <div class="cat-color-dot" id="cat-dot-${ci}" style="background:${c.color}"></div>
+        </div>
+        <input type="text" class="cat-name-input" value="${c.label}" id="cat-label-${ci}" placeholder="大类名称">
+        <input type="text" value="${c.icon}" id="cat-icon-${ci}" style="width:36px;border:none;background:transparent;font-size:16px;text-align:center;font-family:var(--font)" placeholder="🏠">
+        <span class="cat-key-badge">${c.key}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-sm" onclick="moveCategoryUp(${ci})" title="上移" ${ci===0?'disabled':''}>↑</button>
+        <button class="btn btn-outline btn-sm" onclick="moveCategoryDown(${ci})" title="下移">↓</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCategoryBlock(${ci})">删除</button>
+      </div>
+    </div>
+    <div class="subcategory-list" id="subcat-list-${ci}">
+      ${c.subcategories.map((s, si) => renderSubcatItem(ci, si, s)).join('')}
+    </div>
+    <div class="add-subcat-row">
+      <input class="add-subcat-input" type="text" id="new-subcat-${ci}" placeholder="输入子类名称后按回车添加..." onkeydown="if(event.key==='Enter') addSubcat(${ci})">
+      <button class="btn btn-outline btn-sm" onclick="addSubcat(${ci})">添加</button>
+    </div>
+  </div>`;
+}
+
+function renderSubcatItem(ci, si, name) {
+  return `
+  <div class="subcategory-item" id="subcat-item-${ci}-${si}">
+    <span class="subcat-handle" title="拖拽排序">⠿</span>
+    <input class="subcat-input" type="text" value="${name}" id="subcat-${ci}-${si}">
+    <button class="subcat-del" onclick="deleteSubcat(${ci},${si})" title="删除">✕</button>
+  </div>`;
+}
+
+function addSubcat(ci) {
+  const input = document.getElementById(`new-subcat-${ci}`);
+  const val = input.value.trim();
+  if (!val) return;
+
+  const list = document.getElementById(`subcat-list-${ci}`);
+  const newIdx = list.querySelectorAll('.subcategory-item').length;
+  const div = document.createElement('div');
+  div.innerHTML = renderSubcatItem(ci, newIdx, val);
+  list.appendChild(div.firstElementChild);
+  input.value = '';
+  input.focus();
+}
+
+function deleteSubcat(ci, si) {
+  const item = document.getElementById(`subcat-item-${ci}-${si}`);
+  if (item && confirm(`确认删除子类？`)) item.remove();
+}
+
+function deleteCategoryBlock(ci) {
+  const block = document.getElementById(`cat-block-${ci}`);
+  const label = document.getElementById(`cat-label-${ci}`)?.value || '此大类';
+  if (block && confirm(`确认删除大类"${label}"？已有此类别的记录不会被删除，但会失去分类标签。`)) {
+    block.remove();
+    toast(`已删除大类"${label}"`);
+  }
+}
+
+function moveCategoryUp(ci) {
+  const block = document.getElementById(`cat-block-${ci}`);
+  if (block && block.previousElementSibling?.classList.contains('category-block')) {
+    block.parentNode.insertBefore(block, block.previousElementSibling);
+  }
+}
+
+function moveCategoryDown(ci) {
+  const block = document.getElementById(`cat-block-${ci}`);
+  if (block && block.nextElementSibling?.classList.contains('category-block')) {
+    block.parentNode.insertBefore(block.nextElementSibling, block);
+  }
+}
+
+function addNewCategory() {
+  const editor = document.getElementById('categories-editor');
+  const ci = editor.querySelectorAll('.category-block').length;
+  const newKey = 'cat_' + Date.now();
+  const newCat = { key: newKey, label: '新大类', icon: '📁', color: '#888888', subcategories: [] };
+  const div = document.createElement('div');
+  div.innerHTML = renderCategoryBlock(newCat, ci);
+  // insert before the add button
+  editor.appendChild(div.firstElementChild);
+  document.getElementById(`cat-label-${ci}`)?.focus();
+}
+
+function saveCategoriesSettings() {
+  const blocks = document.querySelectorAll('.category-block');
+  const settings = loadSettings();
+  const newCats = [];
+
+  blocks.forEach((block, ci) => {
+    const key = block.id.replace('cat-block-','');
+    // Get original key from badge
+    const badge = block.querySelector('.cat-key-badge');
+    const origKey = badge ? badge.textContent.trim() : `cat_${ci}`;
+
+    const label = document.getElementById(`cat-label-${ci}`)?.value?.trim() || '未命名';
+    const icon = document.getElementById(`cat-icon-${ci}`)?.value?.trim() || '📁';
+    const color = document.getElementById(`cat-color-${ci}`)?.value || '#888';
+
+    const subcats = [];
+    block.querySelectorAll('.subcat-input').forEach(inp => {
+      const v = inp.value.trim();
+      if (v) subcats.push(v);
+    });
+
+    newCats.push({ key: origKey, label, icon, color, subcategories: subcats });
+  });
+
+  settings.categories = newCats;
+  saveSettings(settings);
+  buildDynamicNav();
+  buildModalDropdowns();
+  toast('✅ 分类设置已保存！');
+  initSettingsPanel('categories');
+}
+
+function renderPaymentsSettings() {
+  const payments = getPaymentMethods();
+  return `
+  <div class="settings-panel">
+    <h2>支付方式管理</h2>
+    <p class="settings-desc">管理录入支出时可选的支付方式。"键名"是系统内部标识，有数据后不建议修改。</p>
+    <div class="settings-warning">
+      💡 "微信支付 (CNY)" 类型会自动触发人民币汇率换算。建议保留此项。
+    </div>
+    <div class="payment-list" id="payment-editor">
+      ${payments.map((p, i) => `
+        <div class="payment-item" id="pm-item-${i}">
+          <span class="key-label">${p.key}</span>
+          <input type="text" value="${p.label}" id="pm-label-${i}" placeholder="显示名称">
+          <button class="btn btn-danger btn-sm" onclick="deletePayment(${i})">删除</button>
+        </div>`).join('')}
+    </div>
+    <div style="padding:0 12px 12px;display:flex;gap:8px">
+      <input type="text" id="new-pm-key" placeholder="键名 (英文，如 alipay)" style="width:140px;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:var(--font)">
+      <input type="text" id="new-pm-label" placeholder="显示名称 (如 支付宝)" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:var(--font)">
+      <button class="btn btn-outline" onclick="addPayment()">添加</button>
+    </div>
+    <div class="settings-save-bar">
+      <button class="btn btn-primary" onclick="savePaymentsSettings()">保存支付方式</button>
+    </div>
+  </div>`;
+}
+
+function addPayment() {
+  const key = document.getElementById('new-pm-key').value.trim().replace(/\s+/g,'_');
+  const label = document.getElementById('new-pm-label').value.trim();
+  if (!key || !label) { toast('❌ 请填写键名和显示名称'); return; }
+
+  const editor = document.getElementById('payment-editor');
+  const i = editor.querySelectorAll('.payment-item').length;
+  const div = document.createElement('div');
+  div.innerHTML = `<div class="payment-item" id="pm-item-${i}">
+    <span class="key-label">${key}</span>
+    <input type="text" value="${label}" id="pm-label-${i}">
+    <button class="btn btn-danger btn-sm" onclick="deletePayment(${i})">删除</button>
+  </div>`;
+  editor.appendChild(div.firstElementChild);
+  document.getElementById('new-pm-key').value = '';
+  document.getElementById('new-pm-label').value = '';
+}
+
+function deletePayment(i) {
+  const item = document.getElementById(`pm-item-${i}`);
+  if (item && confirm('确认删除此支付方式？')) item.remove();
+}
+
+function savePaymentsSettings() {
+  const settings = loadSettings();
+  const items = document.querySelectorAll('.payment-item');
+  const newPms = [];
+  items.forEach((item, i) => {
+    const key = item.querySelector('.key-label')?.textContent?.trim();
+    const label = document.getElementById(`pm-label-${i}`)?.value?.trim();
+    if (key && label) newPms.push({ key, label });
+  });
+  settings.paymentMethods = newPms;
+  saveSettings(settings);
+  buildModalDropdowns();
+  toast('✅ 支付方式已保存！');
+}
+
+function renderDangerSettings() {
+  const count = getRecords().length;
+  return `
+  <div class="settings-panel">
+    <h2>危险操作</h2>
+    <p class="settings-desc">以下操作不可撤销，请谨慎操作。</p>
+    <div style="border:1.5px solid #ffd0d0;border-radius:12px;overflow:hidden;margin-bottom:16px">
+      <div style="padding:16px 20px;border-bottom:1px solid #ffd0d0;background:#fff8f8">
+        <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:4px">清除所有支出记录</div>
+        <div style="font-size:12px;color:var(--text-muted)">将删除全部 ${count} 条记录。此操作不可恢复。</div>
+      </div>
+      <div style="padding:14px 20px;display:flex;justify-content:flex-end">
+        <button class="btn btn-danger" onclick="clearAllRecords()">⚠️ 清除所有记录</button>
+      </div>
+    </div>
+    <div style="border:1.5px solid #ffd0d0;border-radius:12px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid #ffd0d0;background:#fff8f8">
+        <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:4px">重置所有设置</div>
+        <div style="font-size:12px;color:var(--text-muted)">将分类、支付方式等所有设置恢复为默认值。不影响已有记录。</div>
+      </div>
+      <div style="padding:14px 20px;display:flex;justify-content:flex-end">
+        <button class="btn btn-danger" onclick="resetSettingsToDefault()">⚠️ 重置设置</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function clearAllRecords() {
+  if (prompt('请输入 "确认删除" 以继续：') === '确认删除') {
+    saveData([]);
+    toast('✅ 已清除所有记录');
+    render();
+  } else {
+    toast('已取消');
+  }
+}
+
+function resetSettingsToDefault() {
+  if (confirm('确认将所有设置恢复为默认值？')) {
+    localStorage.removeItem('ff_settings_v1');
+    buildDynamicNav();
+    buildModalDropdowns();
+    toast('✅ 已恢复默认设置');
+    if (currentPage === 'settings') { render(); initSettingsPanel('categories'); }
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function fmt(n) {
+  return (+n || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function pct(n) {
+  return (n * 100).toFixed(1) + '%';
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
