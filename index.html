@@ -1815,66 +1815,108 @@ function handleFileSelect(e) {
   if (file) processCSV(file);
 }
 
+function parseCSVLine(line) {
+  // Handles quoted fields with commas inside
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
 function processCSV(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
-    const headers = lines[0].split(',');
+    // Handle BOM and different line endings
+    let text = e.target.result;
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+    if (lines.length < 2) {
+      alert('CSV 文件为空或格式不正确');
+      return;
+    }
+
+    const headers = parseCSVLine(lines[0]);
     const records = [];
     const errors = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const vals = lines[i].split(',');
+      const vals = parseCSVLine(lines[i]);
       const obj = {};
       headers.forEach((h, idx) => obj[h.trim()] = (vals[idx] || '').trim());
+
       if (!obj.date || !obj.category || !obj.amount) {
-        errors.push(`第${i+1}行：缺少必填字段`);
+        errors.push(`第${i+1}行：缺少必填字段 (date/category/amount)`);
         continue;
       }
       obj.amount = parseFloat(obj.amount) || 0;
       obj.cnyAmount = parseFloat(obj.cnyAmount) || 0;
-      obj.rate = parseFloat(obj.rate) || 0.19;
+      obj.rate = parseFloat(obj.rate) || 0;
       if (!obj.currency) obj.currency = 'CAD';
       if (!obj.payment) obj.payment = 'credit';
+      if (!obj.inCredit) obj.inCredit = 'no';
       records.push(obj);
     }
+
+    // Store in window for confirmImport
+    window._importRecords = records;
 
     const preview = document.getElementById('import-preview');
     preview.innerHTML = `
     <div class="import-preview">
       <div class="table-header">
-        <h3>预览：${records.length} 条记录${errors.length ? `，${errors.length} 条错误` : ''}</h3>
-        <button class="btn btn-primary btn-sm" onclick="confirmImport(${JSON.stringify(records).replace(/"/g,'&quot;')})">确认导入</button>
+        <h3>预览：${records.length} 条记录${errors.length ? \`，<span style="color:var(--red)">${errors.length} 条错误</span>\` : ' ✅'}</h3>
+        <button class="btn btn-primary btn-sm" onclick="confirmImport()">确认导入 ${records.length} 条</button>
       </div>
       <table>
-        <thead><tr><th>日期</th><th>大类</th><th>子类</th><th>金额(CAD)</th><th>支付</th><th>备注</th></tr></thead>
+        <thead><tr>
+          <th>日期</th><th>大类</th><th>子类</th><th style="text-align:right">金额(CAD)</th><th>支付</th><th>备注</th>
+        </tr></thead>
         <tbody>
-          ${records.slice(0,10).map(r => `<tr>
-            <td>${r.date}</td>
-            <td>${CATEGORY_LABELS[r.category]||r.category}</td>
-            <td>${r.subcategory}</td>
-            <td class="amount-cad">$${fmt(r.currency==='CNY' ? (r.cnyAmount||r.amount)*(r.rate||0.19) : r.amount)}</td>
-            <td>${paymentLabel(r.payment)}</td>
-            <td style="color:var(--text-muted);font-size:12px">${r.note||''}</td>
-          </tr>`).join('')}
-          ${records.length > 10 ? `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);font-size:12px">...还有 ${records.length-10} 条</td></tr>` : ''}
+          ${records.slice(0,15).map(r => \`<tr>
+            <td>\${r.date}</td>
+            <td><span class="tag" style="background:\${getCategoryColor(r.category)}22;color:\${getCategoryColor(r.category)}">\${getCategoryLabel(r.category)}</span></td>
+            <td>\${r.subcategory || '-'}</td>
+            <td style="text-align:right" class="amount-cad">$\${fmt(r.currency==='CNY' ? (r.cnyAmount||r.amount)*(r.rate||0.19) : r.amount)}</td>
+            <td style="color:var(--text-muted);font-size:12px">\${paymentLabel(r.payment)}</td>
+            <td style="color:var(--text-muted);font-size:12px">\${r.note||''}</td>
+          </tr>\`).join('')}
+          ${records.length > 15 ? \`<tr><td colspan="6" style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px">...还有 \${records.length-15} 条记录</td></tr>\` : ''}
         </tbody>
       </table>
-      ${errors.length ? `<div style="padding:12px 16px;font-size:12px;color:var(--red)">${errors.join('<br>')}</div>` : ''}
+      ${errors.length ? \`<div style="padding:12px 16px;font-size:12px;color:var(--red);border-top:1px solid var(--border)">\${errors.slice(0,5).join('<br>')}\${errors.length>5 ? \`<br>...还有 \${errors.length-5} 条错误\` : ''}</div>\` : ''}
     </div>`;
-
-    window._importRecords = records;
   };
-  reader.readAsText(file);
+  reader.readAsText(file, 'UTF-8');
 }
 
-function confirmImport(records) {
-  const toImport = window._importRecords || records;
+function confirmImport() {
+  const toImport = window._importRecords;
+  if (!toImport || toImport.length === 0) {
+    toast('❌ 没有可导入的数据');
+    return;
+  }
   const existing = loadData();
-  const merged = [...existing, ...toImport.map(r => ({...r, id: Date.now() + Math.random()}))];
-  saveData(merged);
-  toast(`✅ 成功导入 ${toImport.length} 条记录！`);
+  const withIds = toImport.map(r => ({...r, id: Date.now() + Math.random()}));
+  saveData([...existing, ...withIds]);
+  window._importRecords = null;
+  toast(\`✅ 成功导入 \${withIds.length} 条记录！\`);
   document.getElementById('import-preview').innerHTML = '';
+  // Reset file input so same file can be re-selected
+  const inp = document.getElementById('csv-input');
+  if (inp) inp.value = '';
   render();
 }
 
