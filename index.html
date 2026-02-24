@@ -1743,6 +1743,8 @@ function initEllaChart() {
 //  IMPORT
 // ═══════════════════════════════════════════════
 function renderImport() {
+  // Use setTimeout to attach events after DOM renders
+  setTimeout(initImportZone, 50);
   return `
   <div style="max-width:700px">
     <div class="drive-banner">
@@ -1752,14 +1754,11 @@ function renderImport() {
       </div>
       <button class="btn" style="background:#fff;color:#1a6fc4;font-weight:600" onclick="downloadTemplate()">下载模板</button>
     </div>
-    <div class="import-zone" onclick="document.getElementById('csv-input').click()"
-         ondragover="event.preventDefault();this.classList.add('drag')"
-         ondragleave="this.classList.remove('drag')"
-         ondrop="handleDrop(event)">
+    <div class="import-zone" id="import-zone">
       <div class="import-icon">📂</div>
       <h3>拖拽 CSV 文件到此处，或点击选择文件</h3>
       <p>支持标准 CSV 格式，UTF-8 编码</p>
-      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFileSelect(event)">
+      <input type="file" id="csv-input" accept=".csv,.CSV" style="display:none">
     </div>
     <div id="import-preview"></div>
     <div style="margin-top:24px">
@@ -1803,16 +1802,40 @@ function downloadTemplate() {
   toast('模板已下载！');
 }
 
-function handleDrop(e) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag');
-  const file = e.dataTransfer.files[0];
-  if (file) processCSV(file);
-}
+function initImportZone() {
+  const zone = document.getElementById('import-zone');
+  const input = document.getElementById('csv-input');
+  if (!zone || !input) return;
 
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (file) processCSV(file);
+  // Click to open file picker
+  zone.addEventListener('click', () => input.click());
+
+  // File selected via picker
+  input.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) processCSV(file);
+  });
+
+  // Drag and drop
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.add('drag');
+  });
+  zone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+  });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      zone.querySelector('h3').textContent = '已选择: ' + file.name;
+      processCSV(file);
+    }
+  });
 }
 
 function parseCSVLine(line) {
