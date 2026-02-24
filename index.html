@@ -1600,7 +1600,7 @@ function renderExpenses(filterCat = null, filterMonth = null) {
   return `
   <div class="table-card">
     <div class="table-header">
-      <h3>${filterCat ? CATEGORY_LABELS[filterCat] : '全部支出'} · 共 $${fmt(total)} CAD</h3>
+      <h3>${filterCat ? getCategoryLabel(filterCat) : '全部支出'} · 共 $${fmt(total)} CAD</h3>
       <div class="filter-row">
         <select class="filter-select" id="filter-month-sel">
           <option value="">全部月份</option>
@@ -1866,15 +1866,10 @@ function parseCSVLine(line) {
 function processCSV(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    // Handle BOM and different line endings
     let text = e.target.result;
-    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-
-    if (lines.length < 2) {
-      alert('CSV 文件为空或格式不正确');
-      return;
-    }
+    if (lines.length < 2) { alert('CSV 文件为空或格式不正确'); return; }
 
     const headers = parseCSVLine(lines[0]);
     const records = [];
@@ -1884,9 +1879,8 @@ function processCSV(file) {
       const vals = parseCSVLine(lines[i]);
       const obj = {};
       headers.forEach((h, idx) => obj[h.trim()] = (vals[idx] || '').trim());
-
       if (!obj.date || !obj.category || !obj.amount) {
-        errors.push(`第${i+1}行：缺少必填字段 (date/category/amount)`);
+        errors.push('第' + (i+1) + '行：缺少必填字段');
         continue;
       }
       obj.amount = parseFloat(obj.amount) || 0;
@@ -1898,34 +1892,46 @@ function processCSV(file) {
       records.push(obj);
     }
 
-    // Store in window for confirmImport
     window._importRecords = records;
 
+    // Build preview table rows as a separate variable to avoid nested template issues
+    let rowsHtml = '';
+    records.slice(0, 15).forEach(function(r) {
+      const amt = r.currency === 'CNY' ? (r.cnyAmount || r.amount) * (r.rate || 0.19) : r.amount;
+      const catColor = getCategoryColor(r.category);
+      const catLabel = getCategoryLabel(r.category);
+      rowsHtml += '<tr>';
+      rowsHtml += '<td>' + r.date + '</td>';
+      rowsHtml += '<td><span class="tag" style="background:' + catColor + '22;color:' + catColor + '">' + catLabel + '</span></td>';
+      rowsHtml += '<td>' + (r.subcategory || '-') + '</td>';
+      rowsHtml += '<td style="text-align:right" class="amount-cad">$' + fmt(amt) + '</td>';
+      rowsHtml += '<td style="color:var(--text-muted);font-size:12px">' + paymentLabel(r.payment) + '</td>';
+      rowsHtml += '<td style="color:var(--text-muted);font-size:12px">' + (r.note || '') + '</td>';
+      rowsHtml += '</tr>';
+    });
+    if (records.length > 15) {
+      rowsHtml += '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px">...还有 ' + (records.length - 15) + ' 条记录</td></tr>';
+    }
+
+    const errHtml = errors.length
+      ? '<div style="padding:12px 16px;font-size:12px;color:var(--red);border-top:1px solid var(--border)">' + errors.slice(0, 5).join('<br>') + (errors.length > 5 ? '<br>...还有 ' + (errors.length - 5) + ' 条错误' : '') + '</div>'
+      : '';
+
+    const statusText = records.length + ' 条记录' + (errors.length ? '，' + errors.length + ' 条错误' : ' ✅');
+
     const preview = document.getElementById('import-preview');
-    preview.innerHTML = `
-    <div class="import-preview">
-      <div class="table-header">
-        <h3>预览：${records.length} 条记录${errors.length ? \`，<span style="color:var(--red)">${errors.length} 条错误</span>\` : ' ✅'}</h3>
-        <button class="btn btn-primary btn-sm" onclick="confirmImport()">确认导入 ${records.length} 条</button>
-      </div>
-      <table>
-        <thead><tr>
-          <th>日期</th><th>大类</th><th>子类</th><th style="text-align:right">金额(CAD)</th><th>支付</th><th>备注</th>
-        </tr></thead>
-        <tbody>
-          ${records.slice(0,15).map(r => \`<tr>
-            <td>\${r.date}</td>
-            <td><span class="tag" style="background:\${getCategoryColor(r.category)}22;color:\${getCategoryColor(r.category)}">\${getCategoryLabel(r.category)}</span></td>
-            <td>\${r.subcategory || '-'}</td>
-            <td style="text-align:right" class="amount-cad">$\${fmt(r.currency==='CNY' ? (r.cnyAmount||r.amount)*(r.rate||0.19) : r.amount)}</td>
-            <td style="color:var(--text-muted);font-size:12px">\${paymentLabel(r.payment)}</td>
-            <td style="color:var(--text-muted);font-size:12px">\${r.note||''}</td>
-          </tr>\`).join('')}
-          ${records.length > 15 ? \`<tr><td colspan="6" style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px">...还有 \${records.length-15} 条记录</td></tr>\` : ''}
-        </tbody>
-      </table>
-      ${errors.length ? \`<div style="padding:12px 16px;font-size:12px;color:var(--red);border-top:1px solid var(--border)">\${errors.slice(0,5).join('<br>')}\${errors.length>5 ? \`<br>...还有 \${errors.length-5} 条错误\` : ''}</div>\` : ''}
-    </div>`;
+    preview.innerHTML =
+      '<div class="import-preview">' +
+        '<div class="table-header">' +
+          '<h3>预览：' + statusText + '</h3>' +
+          '<button class="btn btn-primary btn-sm" onclick="confirmImport()">确认导入 ' + records.length + ' 条</button>' +
+        '</div>' +
+        '<table>' +
+          '<thead><tr><th>日期</th><th>大类</th><th>子类</th><th style="text-align:right">金额(CAD)</th><th>支付</th><th>备注</th></tr></thead>' +
+          '<tbody>' + rowsHtml + '</tbody>' +
+        '</table>' +
+        errHtml +
+      '</div>';
   };
   reader.readAsText(file, 'UTF-8');
 }
@@ -1940,7 +1946,7 @@ function confirmImport() {
   const withIds = toImport.map(r => ({...r, id: Date.now() + Math.random()}));
   saveData([...existing, ...withIds]);
   window._importRecords = null;
-  toast(\`✅ 成功导入 \${withIds.length} 条记录！\`);
+  toast('✅ 成功导入 ' + withIds.length + ' 条记录！');
   document.getElementById('import-preview').innerHTML = '';
   // Reset file input so same file can be re-selected
   const inp = document.getElementById('csv-input');
