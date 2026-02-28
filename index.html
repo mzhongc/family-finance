@@ -996,11 +996,119 @@
     gap: 10px;
   }
 
-  /* Responsive */
-  @media (max-width: 900px) {
-    .stat-grid { grid-template-columns: repeat(2, 1fr); }
-    .chart-grid { grid-template-columns: 1fr; }
-    .settings-grid { grid-template-columns: 1fr; }
+  /* Mobile Bottom Nav */
+  #mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--sidebar);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 50;
+    align-items: stretch;
+  }
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.45);
+    padding: 6px 2px;
+    transition: color 0.15s;
+    border: none;
+    background: none;
+    font-family: var(--font);
+  }
+  .mobile-nav-item.active { color: var(--primary); }
+  .mobile-nav-item .mn-icon { font-size: 20px; line-height: 1.2; }
+  .mobile-nav-item .mn-label { font-size: 9px; }
+  #mobile-more-menu {
+    display: none;
+    position: fixed;
+    bottom: 60px; left: 0; right: 0;
+    background: var(--sidebar);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 49;
+    flex-direction: column;
+    padding: 6px 0;
+  }
+  #mobile-more-menu.open { display: flex; }
+  .mobile-more-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 24px;
+    color: rgba(255,255,255,0.75);
+    font-size: 14px;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .mobile-more-item.active { color: var(--primary); }
+  .mobile-more-item .mm-icon { font-size: 18px; width: 24px; text-align: center; }
+  /* Mobile record cards */
+  .mobile-cards { display: none; }
+  .mrc {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f0ede8;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .mrc:last-child { border-bottom: none; }
+  .mrc-left { flex: 1; min-width: 0; }
+  .mrc-date { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+  .mrc-subcat { font-size: 14px; font-weight: 500; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mrc-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .mrc-note { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .mrc-right { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .mrc-amount { font-family: var(--mono); font-weight: 600; font-size: 15px; }
+  .mrc-actions { display: flex; gap: 2px; }
+  /* Responsive breakpoints */
+  @media (max-width: 768px) {
+    #sidebar { display: none; }
+    #mobile-nav { display: flex; }
+    body { overflow: auto; height: auto; min-height: 100vh; }
+    #main { height: auto; min-height: 100vh; overflow: visible; }
+    .topbar { padding: 0 14px; height: 52px; position: sticky; top: 0; z-index: 40; }
+    .topbar-title { font-size: 14px; }
+    .content { padding: 12px 12px 80px; overflow: visible; flex: none; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-card { padding: 12px 14px; }
+    .stat-value { font-size: 19px; }
+    .stat-label { font-size: 10px; }
+    .chart-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 14px; }
+    .chart-card { padding: 14px; }
+    .table-card { border-radius: 12px; }
+    .table-header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }
+    .table-header h3 { font-size: 13px; }
+    .filter-row { width: 100%; }
+    .filter-select { flex: 1; font-size: 12px; padding: 5px 8px; }
+    .desktop-table { display: none !important; }
+    .mobile-cards { display: block !important; }
+    .month-group-header { padding: 8px 14px; font-size: 11px; }
+    .modal-overlay { align-items: flex-end; }
+    .modal { width: 100% !important; max-width: 100% !important; border-radius: 20px 20px 0 0 !important; padding: 20px 16px 28px; max-height: 92dvh !important; }
+    .form-row { grid-template-columns: 1fr !important; gap: 10px; }
+    .form-row.three { grid-template-columns: 1fr 1fr !important; }
+    .login-card { width: calc(100vw - 32px) !important; max-width: 400px; padding: 28px 20px !important; max-height: 92vh; overflow-y: auto; }
+    .settings-grid { grid-template-columns: 1fr; gap: 12px; }
+    .settings-sidebar-nav { display: flex; overflow-x: auto; white-space: nowrap; border-radius: 12px; }
+    .settings-nav-item { border-bottom: none !important; border-right: 1px solid var(--border); padding: 10px 14px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+    .settings-nav-item:last-child { border-right: none; }
+    .import-zone { padding: 24px 16px; }
+    .drive-banner { flex-direction: column; gap: 10px; align-items: flex-start; }
+    #toast { bottom: 72px; }
+    .ella-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .ella-card { padding: 12px; }
+    .ella-card-amount { font-size: 18px; }
+  }
+  @media (max-width: 380px) {
+    .stat-value { font-size: 16px; }
+    .form-row.three { grid-template-columns: 1fr !important; }
   }
 </style>
 </head>
@@ -1513,6 +1621,7 @@ function renderRecentTable(all) {
         </tr>`).join('')}
       </tbody>
     </table>
+    <div class="mobile-cards">${recent.map(r=>renderMobileCard(r)).join('')}</div>
   </div>`;
 }
 
@@ -1621,7 +1730,7 @@ function renderExpenses(filterCat = null, filterMonth = null) {
         <span>${m.slice(0,4)}年 ${+m.slice(5)}月</span>
         <span>$${fmt(mTotal)} CAD · ${rows.length} 笔</span>
       </div>
-      <table>
+      <table class="desktop-table">
         <thead><tr>
           <th>日期</th><th>大类</th><th>子类</th><th>支付方式</th><th>备注</th><th style="text-align:right">金额</th><th></th>
         </tr></thead>
@@ -1643,7 +1752,8 @@ function renderExpenses(filterCat = null, filterMonth = null) {
             </td>
           </tr>`).join('')}
         </tbody>
-      </table>`;
+      </table>
+      <div class="mobile-cards">${rows.map(r=>renderMobileCard(r)).join('')}</div>`;
     }).join('')}
   </div>`;
 }
@@ -2934,10 +3044,94 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2500);
 }
 
+
+// === MOBILE NAVIGATION ===
+function mobileNavigate(page) {
+  navigate(page);
+  closeMobileMore();
+  document.querySelectorAll('.mobile-nav-item').forEach(function(el) { el.classList.remove('active'); });
+  var mnMap = { dashboard: 'mn-dashboard', expenses: 'mn-expenses', import: 'mn-import' };
+  if (mnMap[page]) { var el = document.getElementById(mnMap[page]); if(el) el.classList.add('active'); }
+  else { var el = document.getElementById('mn-more'); if(el) el.classList.add('active'); }
+}
+function toggleMobileMore() {
+  var m = document.getElementById('mobile-more-menu');
+  if (m) { if(m.classList.contains('open')) m.classList.remove('open'); else m.classList.add('open'); }
+}
+function closeMobileMore() {
+  var m = document.getElementById('mobile-more-menu');
+  if (m) m.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('mobile-more-menu');
+  var btn = document.getElementById('mn-more');
+  if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !(btn && btn.contains(e.target))) closeMobileMore();
+});
+function buildMobileMoreMenu() {
+  var c = document.getElementById('mobile-cat-items');
+  if (!c) return;
+  c.innerHTML = getCategories().map(function(cat) {
+    return '<div class="mobile-more-item" onclick="mobileNavigate(\'' + cat.key + '\');toggleMobileMore()"><span class="mm-icon">'+cat.icon+'</span> '+cat.label+'</div>';
+  }).join('');
+}
+var _origBuildNav = buildDynamicNav;
+buildDynamicNav = function() { _origBuildNav(); buildMobileMoreMenu(); };
+function renderMobileCard(r) {
+  var cc = getCategoryColor(r.category);
+  var cl = getCategoryLabel(r.category);
+  var noteHtml = r.note ? '<div class="mrc-note">'+r.note+'</div>' : '';
+  var cnyHtml = r.currency === 'CNY' ? '<div class="amount-cny">' + chr(165) + '' + fmt(r.cnyAmount||r.amount)+'</div>' : '';
+  return '<div class="mrc">'
+    + '<div class="mrc-left">'
+    + '<div class="mrc-date">'+r.date+'</div>'
+    + '<div class="mrc-subcat">'+(r.subcategory||'-')+'</div>'
+    + '<div class="mrc-meta"><span class="tag" style="background:'+cc+'22;color:'+cc+'">'+cl+'</span>'
+    + ' <span style="font-size:11px;color:var(--text-muted)">'+paymentLabel(r.payment)+'</span></div>'
+    + noteHtml + '</div>'
+    + '<div class="mrc-right">'
+    + '<div class="mrc-amount">$'+fmt(cadAmount(r))+'</div>'
+    + cnyHtml
+    + '<div class="mrc-actions">'
+    + '<button class="btn-icon" onclick="editRecord('+r.id+')">✏️</button>'
+    + '<button class="btn-icon" onclick="confirmDelete('+r.id+')">🗑️</button>'
+    + '</div></div></div>';
+}
+
 // Close modal on overlay click
 document.getElementById('modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 </script>
+
+<!-- Mobile Bottom Navigation -->
+<nav id="mobile-nav">
+  <button class="mobile-nav-item active" id="mn-dashboard" onclick="mobileNavigate('dashboard')">
+    <span class="mn-icon">📊</span>
+    <span class="mn-label">仪表盘</span>
+  </button>
+  <button class="mobile-nav-item" id="mn-expenses" onclick="mobileNavigate('expenses')">
+    <span class="mn-icon">📋</span>
+    <span class="mn-label">明细</span>
+  </button>
+  <button class="mobile-nav-item" id="mn-add" onclick="openAddModal()">
+    <span class="mn-icon" style="font-size:26px;line-height:1">＋</span>
+    <span class="mn-label">录入</span>
+  </button>
+  <button class="mobile-nav-item" id="mn-import" onclick="mobileNavigate('import')">
+    <span class="mn-icon">📥</span>
+    <span class="mn-label">导入</span>
+  </button>
+  <button class="mobile-nav-item" id="mn-more" onclick="toggleMobileMore()">
+    <span class="mn-icon">☰</span>
+    <span class="mn-label">更多</span>
+  </button>
+</nav>
+<!-- Mobile More Menu -->
+<div id="mobile-more-menu">
+  <div id="mobile-cat-items"></div>
+  <div class="mobile-more-item" onclick="mobileNavigate('settings');toggleMobileMore()">
+    <span class="mm-icon">⚙️</span> 系统设置
+  </div>
+</div>
 </body>
 </html>
