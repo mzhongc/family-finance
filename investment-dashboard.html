@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>投资看板 · Family Finance</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg: #f4f3ef;
+  --sidebar: #1a1a2e;
+  --primary: #e8622a;
+  --primary-light: #f0845a;
+  --text: #1a1a1a;
+  --text-muted: #888;
+  --border: #e0ddd8;
+  --card: #ffffff;
+  --green: #2d9e6b;
+  --red: #e84040;
+  --blue: #2d6fe8;
+  --yellow: #f0a500;
+  --purple: #9b59b6;
+  --font: 'Noto Sans SC', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --sidebar-w: 220px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+#sidebar { width: var(--sidebar-w); background: var(--sidebar); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.sidebar-logo h1 { font-size: 15px; font-weight: 600; color: #fff; line-height: 1.3; }
+.sidebar-logo p { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 3px; font-family: var(--mono); }
+.sidebar-nav { flex: 1; padding: 10px 12px; overflow-y: auto; }
+.nav-section-label { font-size: 10px; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 1px; padding: 12px 8px 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 13.5px; color: rgba(255,255,255,0.6); transition: all 0.15s; margin-bottom: 2px; }
+.nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.nav-item.active { background: var(--primary); color: #fff; }
+.nav-item .icon { font-size: 16px; }
+.sidebar-bottom { padding: 14px 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.sync-status { display: flex; align-items: center; gap: 8px; font-size: 11px; color: rgba(255,255,255,0.35); padding: 8px 12px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #888; }
+.sync-dot.synced { background: var(--green); }
+.sync-dot.syncing { background: var(--yellow); animation: pulse 1s infinite; }
+.sync-dot.error { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.topbar-title { font-size: 16px; font-weight: 600; }
+.topbar-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; }
+.content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+#setup-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); display: flex; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.4s; }
+#setup-screen.hidden { opacity: 0; pointer-events: none; }
+.setup-card { background: #fff; border-radius: 24px; padding: 44px 40px; width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 32px 80px rgba(0,0,0,0.4); }
+.setup-logo { font-size: 44px; margin-bottom: 14px; text-align: center; }
+.setup-card h1 { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.setup-sub { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 28px; }
+.setup-section { margin-bottom: 20px; }
+.setup-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.setup-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; font-family: var(--font); color: var(--text); background: var(--bg); }
+.setup-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+.setup-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+.setup-hint a { color: var(--primary); }
+.setup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.btn { padding: 10px 20px; border-radius: 10px; font-size: 14px; font-family: var(--font); cursor: pointer; border: none; font-weight: 500; transition: all 0.15s; }
+.btn-primary { background: var(--primary); color: #fff; width: 100%; margin-top: 8px; padding: 13px; font-size: 15px; }
+.btn-primary:hover { background: var(--primary-light); }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.setup-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-muted); font-size: 12px; }
+.setup-divider::before, .setup-divider::after { content:''; flex:1; height:1px; background: var(--border); }
+.setup-error { margin-top: 10px; padding: 10px 14px; background: #fff0f0; border: 1px solid #ffd0d0; border-radius: 10px; font-size: 12px; color: var(--red); display: none; }
+.setup-status { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px; min-height: 18px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+.stat-card { background: var(--card); border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+.stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.stat-value { font-size: 22px; font-weight: 700; font-family: var(--mono); letter-spacing: -0.5px; }
+.stat-value.up { color: var(--green); }
+.stat-value.down { color: var(--red); }
+.stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.stat-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 20px; margin-top: 6px; }
+.stat-badge.up { background: #e8f7f0; color: var(--green); }
+.stat-badge.down { background: #fef0f0; color: var(--red); }
+.person-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.person-tab { padding: 7px 18px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1.5px solid var(--border); background: var(--card); color: var(--text-muted); font-family: var(--font); transition: all 0.15s; }
+.person-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chart-grid-2 { display: grid; grid-template-columns: 1.8fr 1fr; gap: 16px; margin-bottom: 20px; }
+.chart-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.chart-card { background: var(--card); border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+.chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.chart-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 16px; }
+.holdings-card { background: var(--card); border-radius: 14px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 20px; }
+.holdings-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.holdings-header h3 { font-size: 13px; font-weight: 600; }
+.filter-tabs { display: flex; gap: 6px; }
+.filter-tab { padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-family: var(--font); transition: all 0.15s; }
+.filter-tab.active { background: var(--sidebar); color: #fff; border-color: var(--sidebar); }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 16px; background: #faf9f6; border-bottom: 1px solid var(--border); }
+td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid #f0ede8; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #faf9f6; }
+.pl-bar { display: flex; align-items: center; gap: 8px; }
+.pl-bar-track { flex: 1; height: 4px; background: #f0ede8; border-radius: 2px; min-width: 60px; }
+.pl-bar-fill { height: 4px; border-radius: 2px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.tag-rrsp { background: #e8f4ff; color: #1a6fc4; }
+.tag-tfsa { background: #f0f8f0; color: #1e7e4a; }
+.tag-resp { background: #fff4e8; color: #c45c1a; }
+.tag-invest { background: #f8f0ff; color: #7a1ac4; }
+.tag-stock { background: #fff0f0; color: #c41a1a; }
+.tag-fund { background: #f0fff4; color: #1a7a3c; }
+.tag-reits { background: #fff8e8; color: #9a6800; }
+.tag-bond { background: #f0f4ff; color: #1a4ac4; }
+.loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--text-muted); gap: 16px; }
+.loading-spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.settings-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 80; display: none; backdrop-filter: blur(2px); }
+.settings-overlay.open { display: block; }
+.settings-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 420px; background: var(--card); box-shadow: -20px 0 60px rgba(0,0,0,0.15); z-index: 81; padding: 28px; overflow-y: auto; transform: translateX(100%); transition: transform 0.3s; }
+.settings-overlay.open .settings-drawer { transform: translateX(0); }
+.settings-drawer h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.settings-drawer p { font-size: 12px; color: var(--text-muted); margin-bottom: 24px; }
+.settings-field { margin-bottom: 16px; }
+.settings-field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.settings-field input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; font-family: var(--font); color: var(--text); background: var(--bg); }
+.settings-field input:focus { outline: none; border-color: var(--primary); background: #fff; }
+.settings-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; line-height: 1.5; }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a2e; color: #fff; padding: 12px 24px; border-radius: 40px; font-size: 13px; z-index: 200; transition: transform 0.3s; pointer-events: none; }
+#toast.show { transform: translateX(-50%) translateY(0); }
+@media (max-width: 1100px) { .stat-row { grid-template-columns: repeat(2, 1fr); } .chart-grid-2 { grid-template-columns: 1fr; } .chart-grid-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 768px) { #sidebar { display: none; } .content { padding: 14px; } .topbar { padding: 0 14px; } .stat-row { grid-template-columns: repeat(2, 1fr); gap: 10px; } .chart-grid-3 { grid-template-columns: 1fr; } .settings-drawer { width: 100%; } .setup-card { width: calc(100vw - 32px); padding: 28px 20px; } }
+</style>
+</head>
+<body>
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h1>家庭财务<br>管理系统</h1>
+    <p>Family Finance</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">概览</div>
+    <div class="nav-item" onclick="window.location='index.html'"><span class="icon">📊</span> 支出仪表盘</div>
+    <div class="nav-section-label">投资</div>
+    <div class="nav-item active"><span class="icon">📈</span> 投资看板</div>
+    <div class="nav-section-label">工具</div>
+    <div class="nav-item" onclick="window.location='index.html#import'"><span class="icon">📥</span> 导入数据</div>
+    <div class="nav-item" onclick="openSettings()"><span class="icon">⚙️</span> 配置 Sheet</div>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">未连接</span></div>
+    <div style="margin-top:8px;padding:0 4px">
+      <button class="btn btn-outline btn-sm" style="width:100%;font-size:11px" id="auth-btn" onclick="handleAuthBtn()">🔗 连接 Google</button>
+    </div>
+  </div>
+</nav>
+
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">📈</div>
+    <h1>投资看板</h1>
+    <p class="setup-sub">连接你的 Google Sheets 投资记录，自动生成可视化看板</p>
+    <div class="setup-section">
+      <div class="setup-label">Google OAuth Client ID</div>
+      <input type="text" id="setup-client-id" class="setup-input" placeholder="xxxx.apps.googleusercontent.com">
+      <div class="setup-hint">与支出模块使用同一个 Client ID 即可。<a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console →</a></div>
+    </div>
+    <div class="setup-divider">Sheet 配置</div>
+    <div class="setup-section">
+      <div class="setup-label">Spreadsheet ID</div>
+      <input type="text" id="setup-sheet-id" class="setup-input" placeholder="从 Sheet URL 中复制">
+      <div class="setup-hint">Sheet URL 中 /d/ 和 /edit 之间的部分</div>
+    </div>
+    <div class="setup-section">
+      <div class="setup-label">两个 Sheet Tab 名称</div>
+      <div class="setup-row">
+        <div>
+          <input type="text" id="setup-tab1" class="setup-input" placeholder="本人 Tab 名">
+          <div class="setup-hint" style="margin-top:4px">本人</div>
+        </div>
+        <div>
+          <input type="text" id="setup-tab2" class="setup-input" placeholder="配偶 Tab 名">
+          <div class="setup-hint" style="margin-top:4px">配偶（可选）</div>
+        </div>
+      </div>
+    </div>
+    <div class="setup-section">
+      <div class="setup-label">数据起始行（通常第 2 行）</div>
+      <input type="number" id="setup-data-row" class="setup-input" value="2" min="1" max="10">
+    </div>
+    <button class="btn btn-primary" onclick="saveSetupAndLogin()">保存并连接 Google →</button>
+    <div class="setup-status" id="setup-status"></div>
+    <div class="setup-error" id="setup-error"></div>
+  </div>
+</div>
+
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettings(event)">
+  <div class="settings-drawer">
+    <h2>⚙️ 配置 Sheet</h2>
+    <p>修改 Google Sheets 连接配置</p>
+    <div class="settings-field"><label>Spreadsheet ID</label><input type="text" id="cfg-sheet-id"><div class="settings-hint">来自 Sheet URL 中 /d/ 后面的部分</div></div>
+    <div class="settings-field"><label>本人 Tab 名</label><input type="text" id="cfg-tab1" placeholder="如：我 / Me"></div>
+    <div class="settings-field"><label>配偶 Tab 名</label><input type="text" id="cfg-tab2" placeholder="如：她 / Wife"></div>
+    <div class="settings-field"><label>数据起始行</label><input type="number" id="cfg-data-row" value="2" min="1"><div class="settings-hint">第 1 行通常是表头</div></div>
+    <div class="settings-field">
+      <label>列映射（A=1, B=2...）</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Account 列</div><input type="number" id="cfg-col-account" value="1" min="1" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font)"></div>
+        <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Broker 列</div><input type="number" id="cfg-col-broker" value="2" min="1" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font)"></div>
+        <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Type 列</div><input type="number" id="cfg-col-type" value="3" min="1" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font)"></div>
+        <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">年初金额 列</div><input type="number" id="cfg-col-initial" value="4" min="1" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font)"></div>
+        <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">仓位比例 列</div><input type="number" id="cfg-col-alloc" value="12" min="1" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font)"></div>
+        <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">月份数据起始列</div><input type="number" id="cfg-col-months-start" value="6" min="1" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font)"></div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveSettings()">保存配置</button>
+      <button class="btn btn-outline" onclick="closeSettings()">取消</button>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-outline btn-sm" style="width:100%" onclick="refreshData()">🔄 重新加载数据</button></div>
+  </div>
+</div>
+
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-title">📈 投资看板</div>
+    <div class="topbar-meta">
+      <span id="last-updated"></span>
+      <button class="btn btn-outline btn-sm" onclick="refreshData()" id="refresh-btn" style="display:none">🔄 刷新</button>
+      <button class="btn btn-outline btn-sm" onclick="openSettings()">⚙️ 配置</button>
+    </div>
+  </div>
+  <div class="content" id="content">
+    <div class="loading"><div class="loading-spinner"></div><div>正在连接 Google Sheets...</div></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const SCOPES = ['https://www.googleapis.com/auth/drive.file','https://www.googleapis.com/auth/spreadsheets.readonly'].join(' ');
+let tokenClient=null,accessToken=null,sheetData={me:[],spouse:[]},activeTab='combined';
+
+function loadConfig(){const r=localStorage.getItem('inv_config');if(r)try{return JSON.parse(r);}catch(e){}return{clientId:'',sheetId:'',tab1:'',tab2:'',dataRow:2,cols:{account:1,broker:2,type:3,initial:4,alloc:12,monthsStart:6}};}
+function saveConfig(c){localStorage.setItem('inv_config',JSON.stringify(c));}
+function getConfig(){return loadConfig();}
+
+window.onload=()=>{
+  const cfg=getConfig();
+  if(cfg.clientId)document.getElementById('setup-client-id').value=cfg.clientId;
+  if(cfg.sheetId)document.getElementById('setup-sheet-id').value=cfg.sheetId;
+  if(cfg.tab1)document.getElementById('setup-tab1').value=cfg.tab1;
+  if(cfg.tab2)document.getElementById('setup-tab2').value=cfg.tab2;
+  if(cfg.dataRow)document.getElementById('setup-data-row').value=cfg.dataRow;
+  if(cfg.clientId&&cfg.sheetId&&cfg.tab1){initAuth(cfg.clientId);}
+  else{document.getElementById('setup-screen').classList.remove('hidden');setSyncStatus('unconfigured');document.getElementById('content').innerHTML=renderEmpty('请先完成配置','填写下方设置后开始使用');}
+};
+
+function saveSetupAndLogin(){
+  const clientId=document.getElementById('setup-client-id').value.trim();
+  const sheetId=document.getElementById('setup-sheet-id').value.trim();
+  const tab1=document.getElementById('setup-tab1').value.trim();
+  const tab2=document.getElementById('setup-tab2').value.trim();
+  const dataRow=parseInt(document.getElementById('setup-data-row').value)||2;
+  if(!clientId){showSetupError('请填写 OAuth Client ID');return;}
+  if(!sheetId){showSetupError('请填写 Spreadsheet ID');return;}
+  if(!tab1){showSetupError('请填写本人的 Tab 名称');return;}
+  const cfg=getConfig();cfg.clientId=clientId;cfg.sheetId=sheetId;cfg.tab1=tab1;cfg.tab2=tab2||'';cfg.dataRow=dataRow;
+  saveConfig(cfg);setSetupStatus('正在初始化登录...');initAuth(clientId,true);
+}
+
+function initAuth(clientId,autoSignIn=false){
+  if(typeof google==='undefined'||!google.accounts){setSetupStatus('加载 Google 登录库...');setTimeout(()=>initAuth(clientId,autoSignIn),400);return;}
+  try{
+    tokenClient=google.accounts.oauth2.initTokenClient({client_id:clientId,scope:SCOPES,callback:handleTokenResponse,
+      error_callback:(err)=>{const msg=err.type==='popup_closed'?'登录窗口已关闭，请重试':'登录失败：'+(err.message||err.type);showSetupError(msg);setSyncStatus('error');setSetupStatus('');}});
+    setSetupStatus('');
+    if(autoSignIn)signIn();
+    else{setSyncStatus('disconnected');document.getElementById('setup-screen').classList.remove('hidden');}
+  }catch(e){showSetupError('初始化失败：'+e.message);}
+}
+
+function signIn(){if(!tokenClient){showSetupError('尚未初始化，请刷新页面');return;}setSetupStatus('正在打开 Google 登录...');tokenClient.requestAccessToken({prompt:''}); }
+
+async function handleTokenResponse(resp){
+  if(resp.error){showSetupError('授权失败：'+resp.error);return;}
+  accessToken=resp.access_token;
+  const exp=(resp.expires_in||3600)-60;
+  setTimeout(()=>tokenClient&&tokenClient.requestAccessToken({prompt:''}),exp*1000);
+  document.getElementById('setup-screen').classList.add('hidden');
+  setSyncStatus('syncing');document.getElementById('refresh-btn').style.display='';
+  updateAuthBtn();await loadAllData();
+}
+
+function handleAuthBtn(){
+  if(accessToken){accessToken=null;updateAuthBtn();setSyncStatus('disconnected');toast('已退出登录');}
+  else{const cfg=getConfig();if(!cfg.clientId){openSettings();return;}initAuth(cfg.clientId,true);}
+}
+function updateAuthBtn(){const btn=document.getElementById('auth-btn');if(accessToken){btn.textContent='退出登录';}else{btn.textContent='🔗 连接 Google';}}
+
+async function fetchSheet(tab,range){
+  const cfg=getConfig();
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${encodeURIComponent(tab)}!${encodeURIComponent(range||'A1:Z200')}`;
+  const res=await fetch(url,{headers:{'Authorization':'Bearer '+accessToken}});
+  if(!res.ok)throw Object.assign(new Error('Sheets API '+res.status),{status:res.status});
+  const data=await res.json();return data.values||[];
+}
+
+function parseRows(rawRows,cfg){
+  const startIdx=cfg.dataRow-1,cols=cfg.cols,c=n=>n-1;
+  const headerRow=rawRows[0]||[],monthCols=[];
+  for(let i=c(cols.monthsStart);i<headerRow.length;i++){
+    const h=(headerRow[i]||'').toString().trim();
+    if(/\d{4}[-\/]\d{1,2}/.test(h)||/^\d{1,2}月$/.test(h)||/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(h))monthCols.push({col:i,label:h});
+  }
+  const rows=[];let currentAccount='';
+  for(let i=startIdx;i<rawRows.length;i++){
+    const row=rawRows[i];if(!row||row.length<3)continue;
+    const accountCell=(row[c(cols.account)]||'').toString().trim();
+    const broker=(row[c(cols.broker)]||'').toString().trim();
+    const type=(row[c(cols.type)]||'').toString().trim();
+    if(accountCell)currentAccount=accountCell;
+    if(!broker&&!type)continue;
+    const initial=parseFloat((row[c(cols.initial)]||'').toString().replace(/[$,\s]/g,''))||0;
+    const alloc=parseFloat((row[c(cols.alloc)]||'').toString().replace(/[%\s]/g,''))||0;
+    const monthly={};
+    for(const mc of monthCols){const v=parseFloat((row[mc.col]||'').toString().replace(/[$,\s]/g,''));if(!isNaN(v)&&v>0)monthly[mc.label]=v;}
+    const monthLabels=Object.keys(monthly),lastMonth=monthLabels[monthLabels.length-1];
+    const lastValue=lastMonth?monthly[lastMonth]:initial;
+    const prevMonth=monthLabels.length>1?monthLabels[monthLabels.length-2]:null;
+    const prevValue=prevMonth?monthly[prevMonth]:initial;
+    const pl=lastValue-initial,plPct=initial>0?(pl/initial)*100:0,monthChange=lastValue-prevValue;
+    const acLower=currentAccount.toLowerCase();
+    let accountType='invest';
+    if(/tfsa/i.test(acLower))accountType='tfsa';
+    else if(/rrsp|spousal/i.test(acLower))accountType='rrsp';
+    else if(/resp/i.test(acLower))accountType='resp';
+    else if(/cash/i.test(acLower))accountType='cash';
+    const typeLower=(type+' '+broker).toLowerCase();
+    let assetType='fund';
+    if(/us stock|stock|equity|webull|moomoo|ftnt|ftse/i.test(typeLower))assetType='stock';
+    else if(/reit/i.test(typeLower))assetType='reits';
+    else if(/bond|fixed|定期/i.test(typeLower))assetType='bond';
+    else if(/index/i.test(typeLower))assetType='index';
+    rows.push({account:currentAccount,accountType,broker,type,assetType,initial,alloc,monthly,lastValue,prevValue,lastMonth,pl,plPct,monthChange,monthCols});
+  }
+  return{rows,monthCols};
+}
+
+async function loadAllData(){
+  setSyncStatus('syncing');
+  document.getElementById('content').innerHTML='<div class="loading"><div class="loading-spinner"></div><div>读取 Google Sheets 数据...</div></div>';
+  try{
+    const cfg=getConfig(),promises=[fetchSheet(cfg.tab1)];
+    if(cfg.tab2)promises.push(fetchSheet(cfg.tab2));
+    const results=await Promise.all(promises);
+    const parsed1=parseRows(results[0],cfg);
+    const parsed2=cfg.tab2&&results[1]?parseRows(results[1],cfg):{rows:[],monthCols:[]};
+    sheetData={me:parsed1.rows,spouse:parsed2.rows,monthCols:parsed1.monthCols.length?parsed1.monthCols:parsed2.monthCols,tab1:cfg.tab1,tab2:cfg.tab2};
+    setSyncStatus('synced');
+    document.getElementById('last-updated').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    renderDashboard();toast('✅ 数据加载成功');
+  }catch(err){
+    console.error(err);setSyncStatus('error');
+    if(err.status===401){toast('⚠️ 登录已过期，请重新连接');accessToken=null;updateAuthBtn();document.getElementById('setup-screen').classList.remove('hidden');}
+    else{document.getElementById('content').innerHTML=renderEmpty('加载失败','错误：'+err.message+'<br>请检查 Sheet ID 和 Tab 名称是否正确');toast('❌ '+err.message);}
+  }
+}
+async function refreshData(){if(!accessToken){toast('请先连接 Google');return;}await loadAllData();}
+
+function getActiveRows(){if(activeTab==='me')return sheetData.me;if(activeTab==='spouse')return sheetData.spouse;return[...sheetData.me,...sheetData.spouse];}
+function totalValue(rows){return rows.reduce((s,r)=>s+(r.lastValue||0),0);}
+function totalInitial(rows){return rows.reduce((s,r)=>s+(r.initial||0),0);}
+function totalMonthChange(rows){return rows.reduce((s,r)=>s+(r.monthChange||0),0);}
+function groupBy(rows,key){const map={};for(const r of rows){const k=r[key]||'Other';map[k]=(map[k]||0)+(r.lastValue||0);}return map;}
+function buildTimeSeries(rows,monthCols){const s={};for(const mc of monthCols){let t=0;for(const r of rows){if(r.monthly[mc.label]!==undefined)t+=r.monthly[mc.label];}if(t>0)s[mc.label]=t;}return s;}
+
+function renderDashboard(){
+  const rows=getActiveRows(),monthCols=sheetData.monthCols||[];
+  const currTotal=totalValue(rows),initTotal=totalInitial(rows),pl=currTotal-initTotal;
+  const plPct=initTotal>0?(pl/initTotal)*100:0,monthChg=totalMonthChange(rows);
+  const prevSum=rows.reduce((s,r)=>s+(r.prevValue||0),0);
+  const monthChgPctFmt=prevSum>0?((monthChg/prevSum)*100).toFixed(2):'0.00';
+  const meTotal=totalValue(sheetData.me),spouseTotal=totalValue(sheetData.spouse);
+  document.getElementById('content').innerHTML=`
+    <div class="person-tabs">
+      <button class="person-tab ${activeTab==='combined'?'active':''}" onclick="setTab('combined')">🏠 合计</button>
+      <button class="person-tab ${activeTab==='me'?'active':''}" onclick="setTab('me')">${sheetData.tab1||'本人'}</button>
+      ${sheetData.tab2?`<button class="person-tab ${activeTab==='spouse'?'active':''}" onclick="setTab('spouse')">${sheetData.tab2}</button>`:''}
+    </div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">总资产净值</div><div class="stat-value">$${fmtM(currTotal)}</div><div class="stat-sub">CAD</div><div class="stat-badge ${pl>=0?'up':'down'}">${pl>=0?'▲':'▼'} ${Math.abs(plPct).toFixed(2)}% 年初至今</div></div>
+      <div class="stat-card"><div class="stat-label">年初至今盈亏</div><div class="stat-value ${pl>=0?'up':'down'}">${pl>=0?'+':''} $${fmtM(Math.abs(pl))}</div><div class="stat-sub">vs 年初 $${fmtM(initTotal)}</div></div>
+      <div class="stat-card"><div class="stat-label">本月变化</div><div class="stat-value ${monthChg>=0?'up':'down'}">${monthChg>=0?'+':''} $${fmtM(Math.abs(monthChg))}</div><div class="stat-badge ${monthChg>=0?'up':'down'}">${monthChg>=0?'▲':'▼'} ${Math.abs(monthChgPctFmt)}%</div></div>
+      <div class="stat-card"><div class="stat-label">持仓数量</div><div class="stat-value" style="color:var(--blue)">${rows.filter(r=>r.lastValue>0).length}</div><div class="stat-sub">活跃持仓</div></div>
+    </div>
+    ${sheetData.tab2&&activeTab==='combined'?`
+    <div class="chart-grid-2" style="margin-bottom:20px">
+      <div class="chart-card"><div class="chart-title">总资产走势</div><div class="chart-sub">所有账户合计 · 月末快照</div><div style="height:220px"><canvas id="trend-chart"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">两人净资产对比</div><div class="chart-sub">当前市值</div><div style="height:220px"><canvas id="person-chart"></canvas></div></div>
+    </div>`:`
+    <div class="chart-card" style="margin-bottom:20px"><div class="chart-title">资产走势</div><div class="chart-sub">${activeTab==='me'?sheetData.tab1:activeTab==='spouse'?sheetData.tab2:'合计'} · 月末快照</div><div style="height:220px"><canvas id="trend-chart"></canvas></div></div>`}
+    <div class="chart-grid-3">
+      <div class="chart-card"><div class="chart-title">账户类型分布</div><div class="chart-sub">按 RRSP / TFSA / RESP 等</div><div style="height:180px"><canvas id="account-pie"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">资产类型分布</div><div class="chart-sub">股票 / 基金 / REITs 等</div><div style="height:180px"><canvas id="asset-pie"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">月度涨跌金额</div><div class="chart-sub">各账户本月变化</div><div style="height:180px"><canvas id="monthly-bar"></canvas></div></div>
+    </div>
+    <div class="holdings-card">
+      <div class="holdings-header"><h3>📋 持仓明细 · 盈亏排行</h3>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="filterHoldings('all',this)">全部</button>
+          <button class="filter-tab" onclick="filterHoldings('rrsp',this)">RRSP</button>
+          <button class="filter-tab" onclick="filterHoldings('tfsa',this)">TFSA</button>
+          <button class="filter-tab" onclick="filterHoldings('resp',this)">RESP</button>
+          <button class="filter-tab" onclick="filterHoldings('invest',this)">普通</button>
+        </div>
+      </div>
+      <div id="holdings-table-wrap">${renderHoldingsTable(rows)}</div>
+    </div>`;
+  setTimeout(()=>{
+    initTrendChart(rows,monthCols);
+    if(sheetData.tab2&&activeTab==='combined')initPersonChart(meTotal,spouseTotal);
+    initAccountPie(rows);initAssetPie(rows);initMonthlyBar(rows);
+  },50);
+}
+
+function renderHoldingsTable(rows,filter='all'){
+  let filtered=rows.filter(r=>r.lastValue>0);
+  if(filter!=='all')filtered=filtered.filter(r=>r.accountType===filter);
+  filtered.sort((a,b)=>b.plPct-a.plPct);
+  if(!filtered.length)return '<div class="empty" style="padding:40px"><div class="empty-icon">📭</div><p>暂无数据</p></div>';
+  const maxAbsPct=Math.max(...filtered.map(r=>Math.abs(r.plPct)),1);
+  return `<table><thead><tr><th>账户类型</th><th>券商/机构</th><th>资产类型</th><th style="text-align:right">当前市值</th><th style="text-align:right">年初</th><th>盈亏</th><th style="text-align:right">本月变化</th><th style="text-align:right">仓位</th></tr></thead><tbody>${filtered.map(r=>`<tr>
+    <td><div style="font-size:11px;color:var(--text-muted)">${r.account}</div><span class="tag tag-${r.accountType}">${r.accountType.toUpperCase()}</span></td>
+    <td style="font-weight:500">${r.broker}</td>
+    <td><span class="tag tag-${r.assetType}" style="font-size:10px">${assetLabel(r.assetType)}</span><div style="font-size:11px;color:var(--text-muted);margin-top:2px">${r.type.length>20?r.type.slice(0,20)+'…':r.type}</div></td>
+    <td style="text-align:right;font-family:var(--mono);font-weight:600">$${fmt(r.lastValue)}</td>
+    <td style="text-align:right;font-family:var(--mono);color:var(--text-muted)">$${fmt(r.initial)}</td>
+    <td style="min-width:140px"><div class="pl-bar"><span style="font-size:12px;font-weight:600;color:${r.pl>=0?'var(--green)':'var(--red)'};width:60px;text-align:right;font-family:var(--mono)">${r.plPct>=0?'+':''}${r.plPct.toFixed(1)}%</span><div class="pl-bar-track"><div class="pl-bar-fill" style="width:${Math.min(100,(Math.abs(r.plPct)/maxAbsPct)*100)}%;background:${r.pl>=0?'var(--green)':'var(--red)'}"></div></div></div><div style="font-size:11px;color:${r.pl>=0?'var(--green)':'var(--red)'};margin-left:64px;font-family:var(--mono)">${r.pl>=0?'+':''} $${fmt(Math.abs(r.pl))}</div></td>
+    <td style="text-align:right;font-family:var(--mono);font-size:13px;color:${r.monthChange>=0?'var(--green)':'var(--red)'}">${r.monthChange>=0?'+':''}$${fmt(Math.abs(r.monthChange))}</td>
+    <td style="text-align:right;font-family:var(--mono);color:var(--text-muted)">${r.alloc>0?r.alloc.toFixed(2)+'%':'-'}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+function filterHoldings(filter,btn){
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('holdings-table-wrap').innerHTML=renderHoldingsTable(getActiveRows(),filter);
+}
+
+const CI={};
+function dc(id){if(CI[id]){CI[id].destroy();delete CI[id];}}
+
+function initTrendChart(rows,monthCols){
+  dc('trend');const canvas=document.getElementById('trend-chart');
+  if(!canvas||!monthCols.length)return;
+  const me=activeTab!=='spouse'?buildTimeSeries(sheetData.me,monthCols):{};
+  const sp=activeTab!=='me'&&sheetData.tab2?buildTimeSeries(sheetData.spouse,monthCols):{};
+  const combined=buildTimeSeries(rows,monthCols),labels=monthCols.map(m=>m.label),datasets=[];
+  if(activeTab==='combined'&&sheetData.tab2){
+    datasets.push({label:sheetData.tab1||'本人',data:labels.map(l=>me[l]||null),borderColor:'#e8622a',backgroundColor:'#e8622a20',tension:0.4,fill:false,pointRadius:4});
+    datasets.push({label:sheetData.tab2,data:labels.map(l=>sp[l]||null),borderColor:'#2d6fe8',backgroundColor:'#2d6fe820',tension:0.4,fill:false,pointRadius:4});
+    datasets.push({label:'合计',data:labels.map(l=>combined[l]||null),borderColor:'#2d9e6b',backgroundColor:'#2d9e6b15',tension:0.4,fill:true,pointRadius:4,borderWidth:2.5});
+  }else{
+    datasets.push({label:activeTab==='spouse'?sheetData.tab2:(sheetData.tab1||'总资产'),data:labels.map(l=>combined[l]||null),borderColor:'#e8622a',backgroundColor:'#e8622a15',tension:0.4,fill:true,pointRadius:5,borderWidth:2.5});
+  }
+  CI['trend']=new Chart(canvas,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'$'+fmtM(v)},grid:{color:'#f0ede8'}}},plugins:{legend:{position:'bottom',labels:{font:{family:"'Noto Sans SC'"},padding:14,boxWidth:12}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: $${fmt(ctx.parsed.y)}`}}}}});
+}
+
+function initPersonChart(meTotal,spouseTotal){
+  dc('person');const canvas=document.getElementById('person-chart');if(!canvas)return;
+  CI['person']=new Chart(canvas,{type:'doughnut',data:{labels:[sheetData.tab1||'本人',sheetData.tab2||'配偶'],datasets:[{data:[meTotal,spouseTotal],backgroundColor:['#e8622a','#2d6fe8'],borderWidth:0,hoverOffset:6}]},options:{cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{family:"'Noto Sans SC'"},padding:12,boxWidth:10}},tooltip:{callbacks:{label:ctx=>` $${fmt(ctx.parsed)} (${((ctx.parsed/(meTotal+spouseTotal))*100).toFixed(1)}%)`}}}}});
+}
+
+function initAccountPie(rows){
+  dc('accountPie');const canvas=document.getElementById('account-pie');if(!canvas)return;
+  const byAccount=groupBy(rows.filter(r=>r.lastValue>0),'accountType'),labels=Object.keys(byAccount);
+  const colors={rrsp:'#2d6fe8',tfsa:'#2d9e6b',resp:'#e8622a',invest:'#9b59b6',cash:'#888'};
+  CI['accountPie']=new Chart(canvas,{type:'doughnut',data:{labels:labels.map(l=>l.toUpperCase()),datasets:[{data:labels.map(l=>+byAccount[l].toFixed(2)),backgroundColor:labels.map(l=>colors[l]||'#888'),borderWidth:0,hoverOffset:5}]},options:{cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{family:"'Noto Sans SC'"},padding:8,boxWidth:10}},tooltip:{callbacks:{label:ctx=>` $${fmtM(ctx.parsed)}`}}}}});
+}
+
+function initAssetPie(rows){
+  dc('assetPie');const canvas=document.getElementById('asset-pie');if(!canvas)return;
+  const byAsset=groupBy(rows.filter(r=>r.lastValue>0),'assetType'),labels=Object.keys(byAsset);
+  const colors={stock:'#e84040',fund:'#2d9e6b',reits:'#f0a500',bond:'#2d6fe8',index:'#9b59b6'};
+  CI['assetPie']=new Chart(canvas,{type:'doughnut',data:{labels:labels.map(l=>assetLabel(l)),datasets:[{data:labels.map(l=>+byAsset[l].toFixed(2)),backgroundColor:labels.map(l=>colors[l]||'#888'),borderWidth:0,hoverOffset:5}]},options:{cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{family:"'Noto Sans SC'"},padding:8,boxWidth:10}},tooltip:{callbacks:{label:ctx=>` $${fmtM(ctx.parsed)}`}}}}});
+}
+
+function initMonthlyBar(rows){
+  dc('monthlyBar');const canvas=document.getElementById('monthly-bar');if(!canvas)return;
+  const grouped={};
+  for(const r of rows){if(!r.lastValue)continue;const k=r.account||'Other';grouped[k]=(grouped[k]||0)+(r.monthChange||0);}
+  const labels=Object.keys(grouped),data=labels.map(l=>+grouped[l].toFixed(2)),colors=data.map(v=>v>=0?'#2d9e6b':'#e84040');
+  CI['monthlyBar']=new Chart(canvas,{type:'bar',data:{labels:labels.map(l=>l.length>8?l.slice(0,8)+'…':l),datasets:[{data,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',scales:{x:{ticks:{callback:v=>'$'+fmtM(v)},grid:{color:'#f0ede8'}},y:{grid:{display:false}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.x>=0?'+':''}$${fmt(Math.abs(ctx.parsed.x))}`}}}}});
+}
+
+function openSettings(){
+  const cfg=getConfig();
+  document.getElementById('cfg-sheet-id').value=cfg.sheetId||'';
+  document.getElementById('cfg-tab1').value=cfg.tab1||'';
+  document.getElementById('cfg-tab2').value=cfg.tab2||'';
+  document.getElementById('cfg-data-row').value=cfg.dataRow||2;
+  document.getElementById('cfg-col-account').value=cfg.cols?.account||1;
+  document.getElementById('cfg-col-broker').value=cfg.cols?.broker||2;
+  document.getElementById('cfg-col-type').value=cfg.cols?.type||3;
+  document.getElementById('cfg-col-initial').value=cfg.cols?.initial||4;
+  document.getElementById('cfg-col-alloc').value=cfg.cols?.alloc||12;
+  document.getElementById('cfg-col-months-start').value=cfg.cols?.monthsStart||6;
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettings(e){if(!e||e.target===document.getElementById('settings-overlay'))document.getElementById('settings-overlay').classList.remove('open');}
+function saveSettings(){
+  const cfg=getConfig();
+  cfg.sheetId=document.getElementById('cfg-sheet-id').value.trim();
+  cfg.tab1=document.getElementById('cfg-tab1').value.trim();
+  cfg.tab2=document.getElementById('cfg-tab2').value.trim();
+  cfg.dataRow=parseInt(document.getElementById('cfg-data-row').value)||2;
+  cfg.cols={account:parseInt(document.getElementById('cfg-col-account').value)||1,broker:parseInt(document.getElementById('cfg-col-broker').value)||2,type:parseInt(document.getElementById('cfg-col-type').value)||3,initial:parseInt(document.getElementById('cfg-col-initial').value)||4,alloc:parseInt(document.getElementById('cfg-col-alloc').value)||12,monthsStart:parseInt(document.getElementById('cfg-col-months-start').value)||6};
+  saveConfig(cfg);closeSettings();toast('✅ 配置已保存');if(accessToken)refreshData();
+}
+function setTab(tab){activeTab=tab;if(sheetData.me.length||sheetData.spouse.length)renderDashboard();}
+function setSyncStatus(state){
+  const dot=document.getElementById('sync-dot'),text=document.getElementById('sync-text');if(!dot||!text)return;
+  dot.className='sync-dot';
+  const s={synced:{cls:'synced',label:'已同步'},syncing:{cls:'syncing',label:'加载中...'},disconnected:{cls:'',label:'未连接'},error:{cls:'error',label:'加载失败'},unconfigured:{cls:'',label:'未配置'}}[state]||{cls:'',label:''};
+  dot.classList.add(s.cls);text.textContent=s.label;
+}
+function showSetupError(msg){const el=document.getElementById('setup-error');if(el){el.textContent=msg;el.style.display='block';}}
+function setSetupStatus(msg){const el=document.getElementById('setup-status');if(el)el.textContent=msg;}
+function renderEmpty(title,desc){return `<div class="empty"><div class="empty-icon">📊</div><h3>${title}</h3><p style="margin-top:8px">${desc}</p></div>`;}
+function assetLabel(type){return{stock:'股票',fund:'基金',reits:'REITs',bond:'债券/GIC',index:'指数基金'}[type]||type;}
+function fmt(n){return(+n||0).toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtM(n){const abs=Math.abs(+n||0);if(abs>=1000000)return(n/1000000).toFixed(2)+'M';if(abs>=1000)return(n/1000).toFixed(1)+'K';return fmt(n);}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
+</script>
+</body>
+</html>
